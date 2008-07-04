@@ -1,0 +1,3 @@
+Vesion 1.1:
+    - Refactored code into OO form for dot and line code
+    - Allow use of other types of cairo surfaces

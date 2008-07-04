@@ -1,0 +1,20 @@
+
+2008-07-04  João S. O. Bueno <gwidion@gmail.com>
+
+        * NEWS: initial NEWS
+        * CairoPlot.py: Refactored DotLine Graphic into Objetc Oriented mode
+                        Added support for other kind of Cairo Surfaces 
+                        Added suport for changing some parameters of plot,
+                        trough modification of object properties.
+                        Temporarily disabled series legend plotting
+
+2008-07-03  João S. O. Bueno <gwidion@gmail.com>
+
+        * ChangeLog: initial ChangeLog
+        * COPYING: License file added (GNU LGPL 2.1)
+        * TODO: initial TODO
+
+
+2008-06-13   Rodrigo Araújo  <alf.rodrigo@gmail.com>
+
+        * Initial commit
