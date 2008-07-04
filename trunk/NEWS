@@ -1,3 +1,7 @@
-Vesion 1.1:
+Version 1.1:
+    - Refactored code into OO form for pizza plot
+
+Version 1.1:
     - Refactored code into OO form for dot and line code
     - Allow use of other types of cairo surfaces
+

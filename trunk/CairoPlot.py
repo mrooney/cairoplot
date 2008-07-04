@@ -164,6 +164,8 @@ class Plot(object):
         self.context.rectangle(self.border, self.border,
                                self.width - 2 * self.border,
                                self.height - 2 * self.border)
+        #CORRECTION: Added the next line so it will draw the outline of the bounding box
+        self.context.stroke()
 
     def render(self):
         pass
@@ -364,8 +366,69 @@ class DotLinePlot(Plot):
                 x += horizontal_step
                 last = value
 
+class PizzaPlot(Plot):
+    def __init__ (self,
+            surface=None, 
+            data=None, 
+            width=640, 
+            height=480, 
+            background=None):
 
-        
+        Plot.__init__(self, surface, data, width, height, background)
+        self.center = (self.width/2, self.height/2)
+        self.total = sum(self.data)
+        self.radius = min(self.width/3,self.height/3)
+
+    def load_series(self, data, h_labels, v_labels):
+        Plot.load_series(self, data)
+
+    def draw_piece(self, angle, next_angle):
+        self.context.move_to(self.center[0],self.center[1])
+        self.context.line_to(self.center[0] + self.radius*math.cos(angle), self.center[1] + self.radius*math.sin(angle))
+        self.context.arc(self.center[0], self.center[1], self.radius, angle, next_angle)
+        self.context.line_to(self.center[0], self.center[1])
+        self.context.close_path()
+
+    def render(self):
+        self.render_background()
+        self.render_bounding_box()
+
+        self.render_plot()
+        self.render_series_labels()
+
+    def render_series_labels(self):
+        angle = 0
+        next_angle = 0
+        x0,y0 = self.center
+        cr = self.context
+        for number,key in enumerate(self.series_labels):
+            next_angle = angle + 2.0*math.pi*self.data[number]/self.total
+            cr.set_source_rgb(*self.series_colors[number])
+            w = cr.text_extents(key)[2]
+            if (angle + next_angle)/2 < math.pi/2 or (angle + next_angle)/2 > 3*math.pi/2:
+                cr.move_to(x0 + (self.radius+10)*math.cos((angle+next_angle)/2), y0 + (self.radius+10)*math.sin((angle+next_angle)/2) )
+            else:
+                cr.move_to(x0 + (self.radius+10)*math.cos((angle+next_angle)/2) - w, y0 + (self.radius+10)*math.sin((angle+next_angle)/2) )
+            cr.show_text(key)
+            angle = next_angle
+
+    def render_plot(self):
+        angle = 0
+        next_angle = 0
+        x0,y0 = self.center
+        cr = self.context
+        for number,series in enumerate(self.data):
+            next_angle = angle + 2.0*math.pi*series/self.total
+            cr.set_source_rgb(*self.series_colors[number])
+
+            self.draw_piece(angle, next_angle)
+            cr.fill()
+
+            cr.set_source_rgb(1.0, 1.0, 1.0)
+            self.draw_piece(angle, next_angle)
+            cr.stroke()
+
+            angle = next_angle
 
 def dot_line_plot(name,
                   data,
@@ -431,60 +494,9 @@ def pizza_plot(name, data, width, height, background = None):
         
     '''
 
-    surface = cairo.SVGSurface(name + '.svg', width, height)
-    print width, height
-    cr = cairo.Context(surface)
-
-    if background != None:
-        cr.set_source_rgb(background[0], background[1], background[2])
-        cr.rectangle(0,0,width,height)
-        cr.fill()
-    else:
-        linear = cairo.LinearGradient(width/2, 0, width/2, height)
-        linear.add_color_stop_rgb(0,1.0,1.0,1.0)
-        linear.add_color_stop_rgb(1.0,0.9,0.9,0.9)
-        cr.set_source(linear)
-        cr.rectangle(0,0, width, height)
-        cr.fill()
- 
-    angle = 0
-    next_angle = 0
-    cr.set_line_width(2.0)
-    x0 = width/2
-    y0 = height/2
-    n = 0
-    for key in data.keys():
-        n += data[key]
-
-    for key in data.keys():
-        next_angle = angle + 2.0*math.pi*data[key]/n
-    
-        radius = width/3 if width < height else height/3
-        print radius
-        cr.set_source_rgb(random.random(), random.random(), random.random())
-    
-        w = cr.text_extents(key)[2]
-        if (angle + next_angle)/2 < math.pi/2 or (angle + next_angle)/2 > 3*math.pi/2:
-            cr.move_to(x0 + (radius+10)*math.cos((angle+next_angle)/2), y0 + (radius+10)*math.sin((angle+next_angle)/2) )
-        else:
-            cr.move_to(x0 + (radius+10)*math.cos((angle+next_angle)/2) - w, y0 + (radius+10)*math.sin((angle+next_angle)/2) )
-        cr.show_text(key)
-
-        cr.move_to(x0,y0)
-        cr.line_to(x0+radius*math.cos(angle), y0+radius*math.sin(angle))
-        cr.arc(x0, y0, radius, angle, angle + 2.0*math.pi*data[key]/n)
-        cr.line_to(x0,y0)
-        cr.close_path()
-        cr.fill()
-        cr.set_source_rgb(1.0, 1.0, 1.0)
-        cr.move_to(x0,y0)
-        cr.line_to(x0+radius*math.cos(angle), y0+radius*math.sin(angle))
-        cr.arc(x0, y0, radius, angle, angle + 2.0*math.pi*data[key]/n)
-        cr.line_to(x0,y0)
-        cr.close_path()
-        cr.stroke()
-        angle = next_angle
-
+    plot = PizzaPlot(name, data, width, height, background)
+    plot.render()
+    plot.commit()
 
 def drawRectangle(cr, x0, y0, x1, y1, color):
     mid = (x0+x1)/2

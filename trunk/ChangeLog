@@ -1,11 +1,17 @@
 
+2008-07-04  Rodrigo Araújo <alf.rodrigo@gmail.com>
+        * tests.py: Test suit used to check if the module is working correctly
+        * CairoPlot.py: Refactored Pizza Graphic into Object Oriented mode;
+                        Fixed the function Plot.render_bounding_box which
+                        wasn't drawing the line after defining it.
+
 2008-07-04  João S. O. Bueno <gwidion@gmail.com>
 
         * NEWS: initial NEWS
-        * CairoPlot.py: Refactored DotLine Graphic into Objetc Oriented mode
+        * CairoPlot.py: Refactored DotLine Graphic into Object Oriented mode
                         Added support for other kind of Cairo Surfaces 
                         Added suport for changing some parameters of plot,
-                        trough modification of object properties.
+                        through modification of object properties.
                         Temporarily disabled series legend plotting
 
 2008-07-03  João S. O. Bueno <gwidion@gmail.com>
