@@ -1,4 +1,11 @@
 
+2008-07-07  Rodrigo Araújo <alf.rodrigo@gmail.com>
+        * CairoPlot.py: Changed PizzaPlot Class and pizza_plot function names
+                        to PiePlot and pie_plot respectively;
+                        Refactored Gantt Chart into Object Oriented mode;
+                        Fixed the function DotLinePlot.calc_extents;
+                        Added color_series argument to Plot constructor;
+
 2008-07-04  Rodrigo Araújo <alf.rodrigo@gmail.com>
         * tests.py: Test suit used to check if the module is working correctly
         * CairoPlot.py: Refactored Pizza Graphic into Object Oriented mode;

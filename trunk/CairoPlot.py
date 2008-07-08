@@ -49,12 +49,13 @@ class Plot(object):
                  background=None,
                  border = 0,
                  h_labels = None,
-                 v_labels = None):
+                 v_labels = None,
+                 series_colors = None):
         self.create_surface(surface, width, height)
         self.width = width
         self.height = height
         self.context = cairo.Context(self.surface)
-        self.load_series(data, h_labels, v_labels)
+        self.load_series(data, h_labels, v_labels, series_colors)
 
         self.labels={}
         self.labels[HORZ] = h_labels
@@ -105,7 +106,7 @@ class Plot(object):
         except cairo.Error:
             pass
         
-    def load_series (self, data, h_labels=None, v_labels=None):
+    def load_series (self, data, h_labels=None, v_labels=None, series_colors=None):
         #FIXME: implement Series class for holding series data,
         # labels and presentation properties
         
@@ -123,7 +124,10 @@ class Plot(object):
             for key in self.series_labels:
                 self.data.append(data[key])
         #if we have a series of series:
-        elif hasattr(data[0], "__getitem__"):
+        #changed the following line to adapt the Plot class to work
+        #with GanttChart class
+        #elif hasattr(data[0], "__getitem__"):
+        elif max([hasattr(item,'__delitem__') for item in data]) :
             self.data = data
             self.series_labels = range(len(data))
         else:
@@ -131,7 +135,9 @@ class Plot(object):
             self.series_labels = None
         #FIXME: select some pre-sets and allow these to be parametrized:
         random.seed(1)
-        self.series_colors = [[random.random() for i in range(3)]  for series in self.data]
+        self.series_colors = series_colors
+        if not series_colors:
+            self.series_colors = [[random.random() for i in range(3)]  for series in self.data]
         self.series_widths = [1.0 for series in self.data]
 
     def get_width(self):
@@ -197,8 +203,8 @@ class DotLinePlot(Plot):
         
         self.h_label_angle = math.pi / 2.5
 
-    def load_series(self, data, h_labels = None, v_labels = None):
-        Plot.load_series(self, data, h_labels, v_labels)
+    def load_series(self, data, h_labels = None, v_labels = None, series_colors=None):
+        Plot.load_series(self, data, h_labels, v_labels, series_colors)
         self.calc_boundaries()
     
     def calc_boundaries(self):
@@ -217,10 +223,9 @@ class DotLinePlot(Plot):
 
 
     def calc_extents(self, direction):
-
         self.max_value[direction] = 0
         if self.labels[direction]:
-            widest_word = max(self.labels[direction], lambda item: self.context.text_extents(item)[2])
+            widest_word = max(self.labels[direction], key = lambda item: self.context.text_extents(item)[2])
             self.max_value[direction] = self.context.text_extents(widest_word)[2]
             self.borders[other_direction(direction)] = self.max_value[direction] + self.border
         else:
@@ -366,7 +371,7 @@ class DotLinePlot(Plot):
                 x += horizontal_step
                 last = value
 
-class PizzaPlot(Plot):
+class PiePlot(Plot):
     def __init__ (self,
             surface=None, 
             data=None, 
@@ -379,7 +384,7 @@ class PizzaPlot(Plot):
         self.total = sum(self.data)
         self.radius = min(self.width/3,self.height/3)
 
-    def load_series(self, data, h_labels, v_labels):
+    def load_series(self, data, h_labels=None, v_labels=None, series_colors=None):
         Plot.load_series(self, data)
 
     def draw_piece(self, angle, next_angle):
@@ -430,6 +435,197 @@ class PizzaPlot(Plot):
 
             angle = next_angle
 
+class GanttChart (Plot) :
+    def __init__(self,
+                 surface = None,
+                 data = None,
+                 width = 640,
+                 height = 480,
+                 h_labels = None,
+                 v_labels = None,
+                 colors = None):
+        self.bounds = {}
+        self.max_value = {}
+        Plot.__init__(self, surface, data, width, height,  h_labels = h_labels, v_labels = v_labels, series_colors = colors)
+
+    def load_series(self, data, h_labels=None, v_labels=None, series_colors=None):
+        Plot.load_series(self, data, h_labels, v_labels, series_colors)
+        self.calc_boundaries()
+
+    def calc_boundaries(self):
+        self.bounds[HORZ] = (0,len(self.data))
+        for item in self.data:
+            if hasattr(item, "__delitem__"):
+                for sub_item in item:
+                    end_pos = max(sub_item)
+            else:
+                end_pos = max(item)
+        self.bounds[VERT] = (0,end_pos)
+
+    def calc_extents(self, direction):
+        self.max_value[direction] = 0
+        if self.labels[direction]:
+            widest_word = max(self.labels[direction], key = lambda item: self.context.text_extents(item)[2])
+            self.max_value[direction] = self.context.text_extents(widest_word)[2]
+        else:
+            self.max_value[direction] = self.context.text_extents( str(self.bounds[direction][1] + 1) )[2]
+
+    def calc_horz_extents(self):
+        self.calc_extents(HORZ)
+        self.borders[HORZ] = 100 + self.max_value[HORZ]
+
+    def calc_vert_extents(self):
+        self.calc_extents(VERT)
+        self.borders[VERT] = self.height/(self.bounds[HORZ][1] + 1)
+
+    def calc_steps(self):
+        self.horizontal_step = (self.width - self.borders[HORZ])/(len(self.labels[VERT]))
+        self.vertical_step = self.borders[VERT]
+
+    def render(self):
+        self.calc_horz_extents()
+        self.calc_vert_extents()
+        self.calc_steps()
+        self.render_background()
+
+        self.render_labels()
+        self.render_grid()
+        self.render_plot()
+
+    def render_background(self):
+        cr = self.context
+        cr.set_source_rgb(255,255,255)
+        cr.rectangle(0,0,self.width, self.height)
+        cr.fill()
+        for number,item in enumerate(self.data):
+            linear = cairo.LinearGradient(self.width/2, self.borders[VERT] + number*self.vertical_step, 
+                                          self.width/2, self.borders[VERT] + (number+1)*self.vertical_step)
+            linear.add_color_stop_rgb(0,1.0,1.0,1.0)
+            linear.add_color_stop_rgb(1.0,0.9,0.9,0.9)
+            cr.set_source(linear)
+            cr.rectangle(0,self.borders[VERT] + number*self.vertical_step,self.width,self.vertical_step)
+            cr.fill()
+
+    def render_grid(self):
+        cr = self.context
+        cr.set_source_rgb(0.7, 0.7, 0.7)
+        cr.set_dash((1,0,0,0,0,0,1))
+        cr.set_line_width(0.5)
+        for number,label in enumerate(self.labels[VERT]):
+            h = cr.text_extents(label)[3]
+            cr.move_to(self.borders[HORZ] + number*self.horizontal_step, self.vertical_step/2 + h)
+            cr.line_to(self.borders[HORZ] + number*self.horizontal_step, self.height)
+        cr.stroke()
+
+    def render_labels(self):
+        self.context.set_font_size(0.02 * self.width)
+
+        self.render_horz_labels()
+        self.render_vert_labels()
+
+    def render_horz_labels(self):
+        cr = self.context
+        labels = self.labels[HORZ]
+        if not labels:
+            labels = [str(i) for i in range(1, self.bounds[HORZ][1] + 1)  ]
+        for number,label in enumerate(labels):
+            if label != None:
+                cr.set_source_rgb(0.5, 0.5, 0.5)
+                w,h = cr.text_extents(label)[2], cr.text_extents(label)[3]
+                cr.move_to(40,self.borders[VERT] + number*self.vertical_step + self.vertical_step/2 + h/2)
+                cr.show_text(label)
+            
+    def render_vert_labels(self):
+        cr = self.context
+        labels = self.labels[VERT]
+        if not labels:
+            labels = [str(i) for i in range(1, self.bounds[VERT][1] + 1)  ]
+        for number,label in enumerate(labels):
+            w,h = cr.text_extents(label)[2], cr.text_extents(label)[3]
+            cr.move_to(self.borders[HORZ] + number*self.horizontal_step - w/2, self.vertical_step/2)
+            cr.show_text(label)
+
+    def render_rectangle(self, x0, y0, x1, y1, color):
+        self.draw_shadow(x0, y0, x1, y1)
+        self.draw_rectangle(x0, y0, x1, y1, color)
+
+    def draw_rectangular_shadow(self, gradient, x0, y0, w, h):
+        self.context.set_source(gradient)
+        self.context.rectangle(x0,y0,w,h)
+        self.context.fill()
+    
+    def draw_circular_shadow(self, x, y, radius, ang_start, ang_end, mult, shadow):
+        gradient = cairo.RadialGradient(x, y, 0, x, y, 2*radius)
+        gradient.add_color_stop_rgba(0, 0, 0, 0, shadow)
+        gradient.add_color_stop_rgba(1, 0, 0, 0, 0)
+        self.context.set_source(gradient)
+        self.context.move_to(x,y)
+        self.context.line_to(x + mult[0]*radius,y + mult[1]*radius)
+        self.context.arc(x, y, 8, ang_start, ang_end)
+        self.context.line_to(x,y)
+        self.context.close_path()
+        self.context.fill()
+
+    def draw_rectangle(self, x0, y0, x1, y1, color):
+        cr = self.context
+        middle = (x0+x1)/2
+        linear = cairo.LinearGradient(middle,y0,middle,y1)
+        linear.add_color_stop_rgb(0,3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0)
+        linear.add_color_stop_rgb(1,color[0],color[1],color[2])
+        cr.set_source(linear)
+
+        cr.arc(x0+5, y0+5, 5, 0, 2*math.pi)
+        cr.arc(x1-5, y0+5, 5, 0, 2*math.pi)
+        cr.arc(x0+5, y1-5, 5, 0, 2*math.pi)
+        cr.arc(x1-5, y1-5, 5, 0, 2*math.pi)
+        cr.rectangle(x0+5,y0,x1-x0-10,y1-y0)
+        cr.rectangle(x0,y0+5,x1-x0,y1-y0-10)
+        cr.fill()
+
+    def draw_shadow(self, x0, y0, x1, y1):
+        shadow = 0.4
+        h_mid = (x0+x1)/2
+        v_mid = (y0+y1)/2
+        h_linear_1 = cairo.LinearGradient(h_mid,y0-4,h_mid,y0+4)
+        h_linear_2 = cairo.LinearGradient(h_mid,y1-4,h_mid,y1+4)
+        v_linear_1 = cairo.LinearGradient(x0-4,v_mid,x0+4,v_mid)
+        v_linear_2 = cairo.LinearGradient(x1-4,v_mid,x1+4,v_mid)
+
+        h_linear_1.add_color_stop_rgba( 0, 0, 0, 0, 0)
+        h_linear_1.add_color_stop_rgba( 1, 0, 0, 0, shadow)
+        h_linear_2.add_color_stop_rgba( 0, 0, 0, 0, shadow)
+        h_linear_2.add_color_stop_rgba( 1, 0, 0, 0, 0)
+        v_linear_1.add_color_stop_rgba( 0, 0, 0, 0, 0)
+        v_linear_1.add_color_stop_rgba( 1, 0, 0, 0, shadow)
+        v_linear_2.add_color_stop_rgba( 0, 0, 0, 0, shadow)
+        v_linear_2.add_color_stop_rgba( 1, 0, 0, 0, 0)
+
+        self.draw_rectangular_shadow(h_linear_1,x0+4,y0-4,x1-x0-8,8)
+        self.draw_rectangular_shadow(h_linear_2,x0+4,y1-4,x1-x0-8,8)
+        self.draw_rectangular_shadow(v_linear_1,x0-4,y0+4,8,y1-y0-8)
+        self.draw_rectangular_shadow(v_linear_2,x1-4,y0+4,8,y1-y0-8)
+
+        self.draw_circular_shadow(x0+4, y0+4, 4, math.pi, 3*math.pi/2, (-1,0), shadow)
+        self.draw_circular_shadow(x1-4, y0+4, 4, 3*math.pi/2, 2*math.pi, (0,-1), shadow)
+        self.draw_circular_shadow(x0+4, y1-4, 4, math.pi/2, math.pi, (0,1), shadow)
+        self.draw_circular_shadow(x1-4, y1-4, 4, 0, math.pi/2, (1,0), shadow)
+
+    def render_plot(self):
+        for number,item in enumerate(self.data):
+            if hasattr(item, "__delitem__") :
+                for space in item:
+                    self.render_rectangle(self.borders[HORZ] + space[0]*self.horizontal_step, 
+                                          self.borders[VERT] + number*self.vertical_step + self.vertical_step/4.0,
+                                          self.borders[HORZ] + space[1]*self.horizontal_step, 
+                                          self.borders[VERT] + number*self.vertical_step + 3.0*self.vertical_step/4.0, 
+                                          self.series_colors[number])
+            else:
+                space = item
+                self.render_rectangle(self.borders[HORZ] + space[0]*self.horizontal_step, 
+                                      self.borders[VERT] + number*self.vertical_step + self.vertical_step/4.0,
+                                      self.borders[HORZ] + space[1]*self.horizontal_step, 
+                                      self.borders[VERT] + number*self.vertical_step + 3.0*self.vertical_step/4.0, 
+                                      self.series_colors[number])
 def dot_line_plot(name,
                   data,
                   width,
@@ -474,11 +670,11 @@ def dot_line_plot(name,
 
 
 
-def pizza_plot(name, data, width, height, background = None):
+def pie_plot(name, data, width, height, background = None):
 
     '''
-        Function to plot pizza graphics.
-        pizza_plot(name, data, width, height, background = None)
+        Function to plot pie graphics.
+        pie_plot(name, data, width, height, background = None)
 
         Parameters
         
@@ -490,108 +686,13 @@ def pizza_plot(name, data, width, height, background = None):
         Examples of use
         
         teste_data = {"john" : 123, "mary" : 489, "philip" : 890 , "suzy" : 235}
-        CairoPlot.pizza_plot("pizza_teste", teste_data, 500, 500)
+        CairoPlot.pie_plot("pie_teste", teste_data, 500, 500)
         
     '''
 
-    plot = PizzaPlot(name, data, width, height, background)
+    plot = PiePlot(name, data, width, height, background)
     plot.render()
     plot.commit()
-
-def drawRectangle(cr, x0, y0, x1, y1, color):
-    mid = (x0+x1)/2
-    linear = cairo.LinearGradient(mid,y0,mid,y1)
-    linear.add_color_stop_rgb(0,3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0)
-    linear.add_color_stop_rgb(1,color[0],color[1],color[2])
-    cr.set_source(linear)
-
-    cr.arc(x0+5, y0+5, 5, 0, 2*math.pi)
-    cr.arc(x1-5, y0+5, 5, 0, 2*math.pi)
-    cr.arc(x0+5, y1-5, 5, 0, 2*math.pi)
-    cr.arc(x1-5, y1-5, 5, 0, 2*math.pi)
-    cr.rectangle(x0+5,y0,x1-x0-10,y1-y0)
-    cr.rectangle(x0,y0+5,x1-x0,y1-y0-10)
-    cr.fill()
-
-def drawShadow(cr, x0, y0, x1, y1):
-    shadow = 0.4
-    h_mid = (x0+x1)/2
-    v_mid = (y0+y1)/2
-    h_linear_1 = cairo.LinearGradient(h_mid,y0-4,h_mid,y0+4)
-    h_linear_2 = cairo.LinearGradient(h_mid,y1-4,h_mid,y1+4)
-    v_linear_1 = cairo.LinearGradient(x0-4,v_mid,x0+4,v_mid)
-    v_linear_2 = cairo.LinearGradient(x1-4,v_mid,x1+4,v_mid)
-    radial_00 = cairo.RadialGradient(x0+4, y0+4, 0, x0+4, y0+4, 8)
-    radial_01 = cairo.RadialGradient(x1-4, y0+4, 0, x1-4, y0+4, 8)
-    radial_10 = cairo.RadialGradient(x0+4, y1-4, 0, x0+4, y1-4, 8)
-    radial_11 = cairo.RadialGradient(x1-4, y1-4, 0, x1-4, y1-4, 8)
-
-
-    h_linear_1.add_color_stop_rgba( 0, 0, 0, 0, 0)
-    h_linear_1.add_color_stop_rgba( 1, 0, 0, 0, shadow)
-    h_linear_2.add_color_stop_rgba( 0, 0, 0, 0, shadow)
-    h_linear_2.add_color_stop_rgba( 1, 0, 0, 0, 0)
-    v_linear_1.add_color_stop_rgba( 0, 0, 0, 0, 0)
-    v_linear_1.add_color_stop_rgba( 1, 0, 0, 0, shadow)
-    v_linear_2.add_color_stop_rgba( 0, 0, 0, 0, shadow)
-    v_linear_2.add_color_stop_rgba( 1, 0, 0, 0, 0)
-    cr.set_source(h_linear_1)
-    #cr.set_source_rgb(0,0,1)
-    cr.rectangle(x0+4,y0-4,x1-x0-8,8)
-    cr.fill()
-    cr.set_source(h_linear_2)
-    #cr.set_source_rgb(0,0,1)
-    cr.rectangle(x0+4,y1-4,x1-x0-8,8)
-    cr.fill()
-    cr.set_source(v_linear_1)
-    #cr.set_source_rgb(0,0,1)
-    cr.rectangle(x0-4,y0+4,8,y1-y0-8)
-    cr.fill()
-    cr.set_source(v_linear_2)
-    #cr.set_source_rgb(0,0,1)
-    cr.rectangle(x1-4,y0+4,8,y1-y0-8)
-    cr.fill()
-
-    radial_00.add_color_stop_rgba(0, 0, 0, 0, shadow)
-    radial_00.add_color_stop_rgba(1, 0, 0, 0, 0)
-    radial_01.add_color_stop_rgba(0, 0, 0, 0, shadow)
-    radial_01.add_color_stop_rgba(1, 0, 0, 0, 0)
-    radial_10.add_color_stop_rgba(0, 0, 0, 0, shadow)
-    radial_10.add_color_stop_rgba(1, 0, 0, 0, 0)
-    radial_11.add_color_stop_rgba(0, 0, 0, 0, shadow)
-    radial_11.add_color_stop_rgba(1, 0, 0, 0, 0)
-    #cr.set_source_rgb(0,0,1)
-    cr.set_source(radial_00)
-    cr.move_to(x0+4,y0+4)
-    cr.line_to(x0,y0+4)
-    cr.arc(x0+4, y0+4, 8, math.pi, 3*math.pi/2)
-    cr.line_to(x0+4,y0+4)
-    cr.close_path()
-    cr.fill()
-    #cr.set_source_rgb(0,0,1)
-    cr.set_source(radial_01)
-    cr.move_to(x1-4,y0+4)
-    cr.line_to(x1-4,y0)
-    cr.arc(x1-4, y0+4, 8, 3*math.pi/2, 2*math.pi)
-    cr.line_to(x1-4,y0+4)
-    cr.close_path()
-    cr.fill()
-    #cr.set_source_rgb(0,0,0)
-    cr.set_source(radial_10)
-    cr.move_to(x0+4,y1-4)
-    cr.line_to(x0+4,y1)
-    cr.arc(x0+4, y1-4, 8, math.pi/2, math.pi)
-    cr.line_to(x0+4,y1-4)
-    cr.close_path()
-    cr.fill()
-    #cr.set_source_rgb(0,0,0)
-    cr.set_source(radial_11)
-    cr.move_to(x1-4,y1-4)
-    cr.line_to(x1,y1-4)
-    cr.arc(x1-4, y1-4, 8, 0, math.pi/2)
-    cr.line_to(x1-4,y1-4)
-    cr.close_path()
-    cr.fill()
 
 def gantt_chart(name, pieces, width, height, h_legend, v_legend, colors):
 
@@ -618,59 +719,7 @@ def gantt_chart(name, pieces, width, height, h_legend, v_legend, colors):
         
     '''
 
-    surface = cairo.SVGSurface(name + '.svg', width, height)
-    cr = cairo.Context(surface)
-    cr.set_source_rgb(1.0, 1.0, 1.0)
-    cr.rectangle(0,0,width,height)
-    cr.fill()
-    cr.set_font_size(0.02*width)
-    max_word = ''
-    for word in h_legend:
-        max_word = word if word != None and len(word) > len(max_word) else max_word
-    h_border = 100 + cr.text_extents(max_word)[2]
-    horizontal_step = (width-h_border)/len(v_legend)
-    vertical_step = height/(len(h_legend) + 1)
-    v_border = vertical_step
-
-    for line in pieces:
-        linear = cairo.LinearGradient(width/2, v_border + pieces.index(line)*vertical_step, width/2, v_border + (pieces.index(line) + 1)*vertical_step)
-        linear.add_color_stop_rgb(0,1.0,1.0,1.0)
-        linear.add_color_stop_rgb(1.0,0.9,0.9,0.9)
-        cr.set_source(linear)
-        cr.rectangle(0,v_border + pieces.index(line)*vertical_step,width,vertical_step)
-        cr.fill()
-
-    cr.set_font_size(0.015*width)
-    cr.set_source_rgb(0.7, 0.7, 0.7)
-    cr.set_dash((1,0,0,0,0,0,1))
-    cr.set_line_width(0.5)
-    for word in v_legend:
-        w,h = cr.text_extents(word)[2], cr.text_extents(word)[3]
-        cr.move_to(h_border + v_legend.index(word)*horizontal_step-w/2, vertical_step/2)
-        cr.show_text(word)
-        cr.move_to(h_border + v_legend.index(word)*horizontal_step, vertical_step/2 + h)
-        cr.line_to(h_border + v_legend.index(word)*horizontal_step, height)
-    cr.stroke()
-
-    cr.set_font_size(0.02*width)
-    for line in pieces:
-        word = h_legend[pieces.index(line)]
-        if word != None:
-            cr.set_source_rgb(0.5, 0.5, 0.5)
-            w,h = cr.text_extents(word)[2], cr.text_extents(word)[3]
-            cr.move_to(40,v_border + pieces.index(line)*vertical_step + vertical_step/2 + h/2)
-            cr.show_text(word)
-
-        if type(line) == type([]):
-            for space in line:
-                drawShadow(cr, h_border + space[0]*horizontal_step, v_border + pieces.index(line)*vertical_step + vertical_step/4.0, 
-                               h_border + space[1]*horizontal_step, v_border + pieces.index(line)*vertical_step + 3.0*vertical_step/4.0)
-                drawRectangle(cr, h_border + space[0]*horizontal_step, v_border + pieces.index(line)*vertical_step + vertical_step/4.0, 
-                                  h_border + space[1]*horizontal_step, v_border + pieces.index(line)*vertical_step + 3.0*vertical_step/4.0, colors[pieces.index(line)])
-        else:
-            space = line
-            drawShadow(cr, h_border + space[0]*horizontal_step, v_border + pieces.index(line)*vertical_step + vertical_step/4.0, 
-                           h_border + space[1]*horizontal_step, v_border + pieces.index(line)*vertical_step + 3.0*vertical_step/4.0)
-            drawRectangle(cr, h_border + space[0]*horizontal_step, v_border + pieces.index(line)*vertical_step + vertical_step/4.0, 
-                              h_border + space[1]*horizontal_step, v_border + pieces.index(line)*vertical_step + 3.0*vertical_step/4.0, colors[pieces.index(line)])
+    plot = GanttChart(name, pieces, width, height, h_legend, v_legend, colors)
+    plot.render()
+    plot.commit()
 

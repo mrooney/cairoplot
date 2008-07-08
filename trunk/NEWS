@@ -1,7 +1,8 @@
-Version 1.1:
-    - Refactored code into OO form for pizza plot
 
 Version 1.1:
     - Refactored code into OO form for dot and line code
+    - Refactored code into OO form for pizza plot
+    - pizza plot renamed to pie plot
+    - Refactored code into OO form for gantt chart
     - Allow use of other types of cairo surfaces
 
