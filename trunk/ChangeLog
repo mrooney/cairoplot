@@ -1,4 +1,8 @@
 
+2008-07-11  Rodrigo Araújo <alf.rodrigo@gmail.com>
+        * CairoPlot.py: Added BarPlot working draft
+        * tests.py: Added tests regarding the use of bar_plot function
+
 2008-07-07  Rodrigo Araújo <alf.rodrigo@gmail.com>
         * CairoPlot.py: Changed PizzaPlot Class and pizza_plot function names
                         to PiePlot and pie_plot respectively;

@@ -64,7 +64,7 @@ class Plot(object):
         self.font_size = 10
         
         self.set_background (background)
-        self.border = 0
+        self.border = border
         self.borders = {}
         
         self.line_color = (0.5, 0.5, 0.5)
@@ -370,6 +370,145 @@ class DotLinePlot(Plot):
                 cr.fill()
                 x += horizontal_step
                 last = value
+
+class BarPlot(Plot):
+    def __init__(self, 
+                 surface = None,
+                 data = None,
+                 width = 640,
+                 height = 480,
+                 background = None,
+                 border = 0,
+                 grid = False,
+                 h_labels = None,
+                 v_labels = None,
+                 h_bounds = None,
+                 v_bounds = None):
+
+        self.bounds = {}
+        self.bounds[HORZ] = h_bounds
+        self.bounds[VERT] = v_bounds
+
+        Plot.__init__(self, surface, data, width, height, background, border, h_labels, v_labels)
+        self.grid = grid
+
+        self.max_value = {}
+
+    def load_series(self, data, h_labels = None, v_labels = None, series_colors = None):
+        Plot.load_series(self, data, h_labels, v_labels, series_colors)
+        self.calc_boundaries()
+
+    def calc_boundaries(self):
+        
+        if not self.bounds[HORZ]:
+            self.bounds[HORZ] = (0, len(self.data))
+
+        if not self.bounds[VERT]:
+            max_data_value = min_data_value = 0
+            for series in self.data:
+                if max(series) > max_data_value:
+                    max_data_value = max(series)
+                if min(series) < min_data_value:
+                    min_data_value = min(series)
+            self.bounds[VERT] = (min_data_value, max_data_value)
+
+    def calc_extents(self, direction):
+        self.max_value[direction] = 0
+        if self.labels[direction]:
+            widest_word = max(self.labels[direction], key = lambda item: self.context.text_extents(item)[2])
+            self.max_value[direction] = self.context.text_extents(widest_word)[2]
+            self.borders[other_direction(direction)] = self.max_value[direction] + self.border
+        else:
+            self.borders[other_direction(direction)] = self.border
+
+    def calc_horz_extents(self):
+        self.calc_extents(HORZ)
+
+    def calc_vert_extents(self):
+        self.calc_extents(VERT)
+
+    def render(self):
+        self.calc_horz_extents()
+        self.calc_vert_extents()
+        
+        self.render_background()
+        self.render_bounding_box()
+        
+        if self.grid:
+            self.render_grid()
+
+        self.render_labels()
+
+        self.render_plot()
+
+    def render_grid(self):
+        self.context.set_source_rgb(0.8, 0.8, 0.8)
+        if self.labels[VERT]:
+            lines = len(self.labels[VERT])
+        else:
+            lines = 10
+        vertical_step = (self.height - 2*self.borders[VERT])/lines
+        for y in xrange(self.borders[VERT] + vertical_step, self.height - self.borders[VERT], vertical_step):
+            self.context.move_to(self.borders[HORZ], y)
+            self.context.line_to(self.width - self.borders[HORZ], y)
+            self.context.stroke()
+
+    def render_labels(self):
+        self.context.set_font_size(self.font_size * 0.8)
+
+        if self.labels[HORZ]:
+            self.render_horz_labels()
+        if self.labels[VERT]:
+            self.render_vert_labels()
+
+    def render_horz_labels(self):
+        step = (self.width - 2*self.borders[HORZ])/len(self.labels[HORZ])
+        x = self.borders[HORZ] + step
+
+        for item in self.labels[HORZ]:
+            self.context.set_source_rgb(*self.label_color)
+            width = self.context.text_extents(item)[2]
+            self.context.move_to(x - width/2, self.height - self.borders[VERT] + 10)
+            self.context.show_text(item)
+            x += step
+
+    def render_vert_labels(self):
+        step = (self.width - 2*self.borders[VERT])/len(self.labels[VERT])
+        y = self.borders[VERT] + step
+
+        for item in self.labels[VERT]:
+            self.context.set_source_rgb(*self.label_color)
+            self.context.move_to(self.borders[HORZ], y)
+            self.context.show_text(item)
+            y += step
+
+    def render_plot(self):
+        print "AAAAAAAAAA"
+        print self.data
+        plot_width = self.width - 2 * self.borders[HORZ]
+        plot_height = self.height - 2 * self.borders[VERT]
+        plot_top = self.height - self.borders[VERT]
+
+        series_amplitude = self.bounds[VERT][1] - self.bounds[VERT][0]
+
+        horizontal_step = float (plot_width) / len(self.data)
+        vertical_step = float (plot_height) / series_amplitude
+
+        print plot_width, plot_height, plot_top, series_amplitude, horizontal_step, vertical_step
+
+        for i,series in enumerate(self.data):
+            inner_step = horizontal_step/(len(series) + 1)
+            x0 = self.borders[HORZ] + i*horizontal_step + inner_step/2
+            for key in series:
+                linear = cairo.LinearGradient( x0, key*vertical_step/2, x0 + inner_step, key*vertical_step/2 )
+                r,g,b = random.random(), random.random(), random.random()
+                linear.add_color_stop_rgb(0.0, 3.5*r/5.0, 3.5*g/5.0, 3.5*b/5.0)
+                linear.add_color_stop_rgb(1.0, r, g, b)
+                self.context.set_source(linear)
+                print(x0, self.borders[VERT] + (series_amplitude - key)*vertical_step, horizontal_step, key*vertical_step)
+                self.context.rectangle(x0, self.borders[VERT] + (series_amplitude - key)*vertical_step, inner_step, key*vertical_step)
+                self.context.fill()
+                x0 += inner_step
 
 class PiePlot(Plot):
     def __init__ (self,
@@ -720,6 +859,23 @@ def gantt_chart(name, pieces, width, height, h_legend, v_legend, colors):
     '''
 
     plot = GanttChart(name, pieces, width, height, h_legend, v_legend, colors)
+    plot.render()
+    plot.commit()
+
+def bar_plot(name, 
+             data, 
+             width, 
+             height, 
+             background = None, 
+             border = 0, 
+             grid = False, 
+             h_labels = None, 
+             v_labels = None, 
+             h_bounds = None, 
+             v_bounds = None):
+
+    plot = BarPlot(name, data, width, height, background, border,
+                   grid, h_labels, v_labels, h_bounds, v_bounds)
     plot.render()
     plot.commit()
 
