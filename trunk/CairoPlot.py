@@ -136,7 +136,7 @@ class Plot(object):
         #FIXME: select some pre-sets and allow these to be parametrized:
         random.seed(1)
         self.series_colors = series_colors
-        if not series_colors:
+        if not self.series_colors:
             self.series_colors = [[random.random() for i in range(3)]  for series in self.data]
         self.series_widths = [1.0 for series in self.data]
 
@@ -383,19 +383,25 @@ class BarPlot(Plot):
                  h_labels = None,
                  v_labels = None,
                  h_bounds = None,
-                 v_bounds = None):
+                 v_bounds = None,
+                 series_colors = None):
 
         self.bounds = {}
         self.bounds[HORZ] = h_bounds
         self.bounds[VERT] = v_bounds
 
-        Plot.__init__(self, surface, data, width, height, background, border, h_labels, v_labels)
+        Plot.__init__(self, surface, data, width, height, background, border, h_labels, v_labels, series_colors)
         self.grid = grid
 
         self.max_value = {}
 
     def load_series(self, data, h_labels = None, v_labels = None, series_colors = None):
         Plot.load_series(self, data, h_labels, v_labels, series_colors)
+        if not series_colors:
+            if hasattr( max(self.data, key = len), '__getitem__'):
+                self.series_colors = [[random.random() for i in range(3)]  for item in max(self.data, key = len)]
+            else:
+                self.series_colors = [[random.random() for i in range(3)]  for series in self.data]
         self.calc_boundaries()
 
     def calc_boundaries(self):
@@ -416,8 +422,8 @@ class BarPlot(Plot):
         self.max_value[direction] = 0
         if self.labels[direction]:
             widest_word = max(self.labels[direction], key = lambda item: self.context.text_extents(item)[2])
-            self.max_value[direction] = self.context.text_extents(widest_word)[2]
-            self.borders[other_direction(direction)] = self.max_value[direction] + self.border
+            self.max_value[direction] = self.context.text_extents(widest_word)[3 - direction]
+            self.borders[other_direction(direction)] = (2-direction)*self.max_value[direction] + self.border + direction*(5)
         else:
             self.borders[other_direction(direction)] = self.border
 
@@ -426,6 +432,8 @@ class BarPlot(Plot):
 
     def calc_vert_extents(self):
         self.calc_extents(VERT)
+        if self.labels[VERT] and not self.labels[HORZ]:
+            self.borders[VERT] += 10
 
     def render(self):
         self.calc_horz_extents()
@@ -447,11 +455,13 @@ class BarPlot(Plot):
             lines = len(self.labels[VERT])
         else:
             lines = 10
-        vertical_step = (self.height - 2*self.borders[VERT])/lines
-        for y in xrange(self.borders[VERT] + vertical_step, self.height - self.borders[VERT], vertical_step):
+        vertical_step = float(self.height - 2*self.borders[VERT])/(lines-1)
+        y = self.borders[VERT]
+        for x in xrange(0, lines):
             self.context.move_to(self.borders[HORZ], y)
-            self.context.line_to(self.width - self.borders[HORZ], y)
+            self.context.line_to(self.width - self.border, y)
             self.context.stroke()
+            y += vertical_step
 
     def render_labels(self):
         self.context.set_font_size(self.font_size * 0.8)
@@ -462,51 +472,51 @@ class BarPlot(Plot):
             self.render_vert_labels()
 
     def render_horz_labels(self):
-        step = (self.width - 2*self.borders[HORZ])/len(self.labels[HORZ])
-        x = self.borders[HORZ] + step
+        step = (self.width - self.borders[HORZ] - self.border)/len(self.labels[HORZ])
+        x = self.borders[HORZ] + step/2
 
         for item in self.labels[HORZ]:
             self.context.set_source_rgb(*self.label_color)
             width = self.context.text_extents(item)[2]
-            self.context.move_to(x - width/2, self.height - self.borders[VERT] + 10)
+            self.context.move_to(x - width/2, self.height - self.borders[VERT] + self.max_value[HORZ] + 3)
             self.context.show_text(item)
             x += step
 
     def render_vert_labels(self):
-        step = (self.width - 2*self.borders[VERT])/len(self.labels[VERT])
-        y = self.borders[VERT] + step
+        y = self.borders[VERT]
+        step = (self.height - 2*self.borders[VERT])/(len(self.labels[VERT]) - 1)
 
+        self.labels[VERT].reverse()
         for item in self.labels[VERT]:
             self.context.set_source_rgb(*self.label_color)
-            self.context.move_to(self.borders[HORZ], y)
+            width, height = self.context.text_extents(item)[2:4]
+            self.context.move_to(self.borders[HORZ] - width - 5, y + height/2)
             self.context.show_text(item)
             y += step
+        self.labels[VERT].reverse()
 
     def render_plot(self):
-        print "AAAAAAAAAA"
-        print self.data
-        plot_width = self.width - 2 * self.borders[HORZ]
+        plot_width = self.width - self.borders[HORZ] - self.border
         plot_height = self.height - 2 * self.borders[VERT]
         plot_top = self.height - self.borders[VERT]
 
         series_amplitude = self.bounds[VERT][1] - self.bounds[VERT][0]
 
+        y0 = self.borders[VERT]
+        
         horizontal_step = float (plot_width) / len(self.data)
         vertical_step = float (plot_height) / series_amplitude
 
-        print plot_width, plot_height, plot_top, series_amplitude, horizontal_step, vertical_step
-
         for i,series in enumerate(self.data):
-            inner_step = horizontal_step/(len(series) + 1)
-            x0 = self.borders[HORZ] + i*horizontal_step + inner_step/2
-            for key in series:
+            inner_step = horizontal_step/(len(series) + 0.4)
+            x0 = self.borders[HORZ] + i*horizontal_step + 0.2*inner_step
+            for number,key in enumerate(series):
                 linear = cairo.LinearGradient( x0, key*vertical_step/2, x0 + inner_step, key*vertical_step/2 )
-                r,g,b = random.random(), random.random(), random.random()
+                r,g,b = self.series_colors[number]
                 linear.add_color_stop_rgb(0.0, 3.5*r/5.0, 3.5*g/5.0, 3.5*b/5.0)
                 linear.add_color_stop_rgb(1.0, r, g, b)
                 self.context.set_source(linear)
-                print(x0, self.borders[VERT] + (series_amplitude - key)*vertical_step, horizontal_step, key*vertical_step)
-                self.context.rectangle(x0, self.borders[VERT] + (series_amplitude - key)*vertical_step, inner_step, key*vertical_step)
+                self.context.rectangle(x0, y0 + (series_amplitude - key)*vertical_step, inner_step, key*vertical_step)
                 self.context.fill()
                 x0 += inner_step
 

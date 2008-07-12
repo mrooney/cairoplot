@@ -1,4 +1,8 @@
 
+2008-07-12  Rodrigo Araújo <alf.rodrigo@gmail.com>
+        * CairoPlot.py: Bug fixes for BarPlot
+        * tests.py: Added new tests for the bar_plot function
+
 2008-07-11  Rodrigo Araújo <alf.rodrigo@gmail.com>
         * CairoPlot.py: Added BarPlot working draft
         * tests.py: Added tests regarding the use of bar_plot function
