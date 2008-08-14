@@ -1,4 +1,8 @@
 
+2008-08-14  Rodrigo Araújo <alf.rodrigo@gmail.com>
+        * CairoPlot.py: Added DonutPlot
+        * tests.py: Added new tests for the donut_plot function
+
 2008-07-12  Rodrigo Araújo <alf.rodrigo@gmail.com>
         * CairoPlot.py: Bug fixes for BarPlot
         * tests.py: Added new tests for the bar_plot function

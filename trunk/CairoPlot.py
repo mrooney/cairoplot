@@ -134,7 +134,7 @@ class Plot(object):
             self.data = [data]
             self.series_labels = None
         #FIXME: select some pre-sets and allow these to be parametrized:
-        random.seed(1)
+        random.seed(2)
         self.series_colors = series_colors
         if not self.series_colors:
             self.series_colors = [[random.random() for i in range(3)]  for series in self.data]
@@ -526,12 +526,16 @@ class PiePlot(Plot):
             data=None, 
             width=640, 
             height=480, 
-            background=None):
+            background=None,
+            gradient=False,
+            shadow=False):
 
         Plot.__init__(self, surface, data, width, height, background)
         self.center = (self.width/2, self.height/2)
         self.total = sum(self.data)
         self.radius = min(self.width/3,self.height/3)
+        self.gradient = gradient
+        self.shadow = shadow
 
     def load_series(self, data, h_labels=None, v_labels=None, series_colors=None):
         Plot.load_series(self, data)
@@ -546,9 +550,17 @@ class PiePlot(Plot):
     def render(self):
         self.render_background()
         self.render_bounding_box()
-
+        if self.shadow:
+            self.render_shadow()
         self.render_plot()
         self.render_series_labels()
+
+    def render_shadow(self):
+        horizontal_shift = 3
+        vertical_shift = 3
+        self.context.set_source_rgba(0, 0, 0, 0.5)
+        self.context.arc(self.center[0] + horizontal_shift, self.center[1] + vertical_shift, self.radius, 0, 2*math.pi)
+        self.context.fill()
 
     def render_series_labels(self):
         angle = 0
@@ -573,7 +585,17 @@ class PiePlot(Plot):
         cr = self.context
         for number,series in enumerate(self.data):
             next_angle = angle + 2.0*math.pi*series/self.total
-            cr.set_source_rgb(*self.series_colors[number])
+            if self.gradient:        
+                gradient_color = cairo.RadialGradient(self.center[0], self.center[1], 0, self.center[0], self.center[1], self.radius)
+                gradient_color.add_color_stop_rgb(0.3, self.series_colors[number][0], 
+                                                       self.series_colors[number][1], 
+                                                       self.series_colors[number][2])
+                gradient_color.add_color_stop_rgb(1, self.series_colors[number][0]*0.7,
+                                                     self.series_colors[number][1]*0.7,
+                                                     self.series_colors[number][2]*0.7)
+                cr.set_source(gradient_color)
+            else:
+                cr.set_source_rgb(*self.series_colors[number])
 
             self.draw_piece(angle, next_angle)
             cr.fill()
@@ -583,6 +605,43 @@ class PiePlot(Plot):
             cr.stroke()
 
             angle = next_angle
+
+class DonutPlot(PiePlot):
+    def __init__ (self,
+            surface=None, 
+            data=None, 
+            width=640, 
+            height=480,
+            background=None,
+            gradient=False,
+            shadow=False,
+            inner_radius=-1):
+
+        Plot.__init__(self, surface, data, width, height, background)
+        self.center = (self.width/2, self.height/2)
+        self.total = sum(self.data)
+        self.radius = min(self.width/3,self.height/3)
+        self.inner_radius = inner_radius*self.radius
+        if inner_radius == -1:
+            self.inner_radius = self.radius/3
+        self.gradient = gradient
+        self.shadow = shadow
+
+    def draw_piece(self, angle, next_angle):
+        self.context.move_to(self.center[0] + (self.inner_radius)*math.cos(angle), self.center[1] + (self.inner_radius)*math.sin(angle))
+        self.context.line_to(self.center[0] + self.radius*math.cos(angle), self.center[1] + self.radius*math.sin(angle))
+        self.context.arc(self.center[0], self.center[1], self.radius, angle, next_angle)
+        self.context.line_to(self.center[0] + (self.inner_radius)*math.cos(next_angle), self.center[1] + (self.inner_radius)*math.sin(next_angle))
+        self.context.arc_negative(self.center[0], self.center[1], self.inner_radius, next_angle, angle)
+        self.context.close_path()
+    
+    def render_shadow(self):
+        horizontal_shift = 3
+        vertical_shift = 3
+        self.context.set_source_rgba(0, 0, 0, 0.5)
+        self.context.arc(self.center[0] + horizontal_shift, self.center[1] + vertical_shift, self.inner_radius, 0, 2*math.pi)
+        self.context.arc_negative(self.center[0] + horizontal_shift, self.center[1] + vertical_shift, self.radius, 0, -2*math.pi)
+        self.context.fill()
 
 class GanttChart (Plot) :
     def __init__(self,
@@ -819,11 +878,11 @@ def dot_line_plot(name,
 
 
 
-def pie_plot(name, data, width, height, background = None):
+def pie_plot(name, data, width, height, background = None, gradient = False):
 
     '''
         Function to plot pie graphics.
-        pie_plot(name, data, width, height, background = None)
+        pie_plot(name, data, width, height, background = None, gradient = False)
 
         Parameters
         
@@ -831,6 +890,7 @@ def pie_plot(name, data, width, height, background = None):
         data - The list, list of lists or dictionary holding the data to be plotted;
         width, height - Dimensions of the output image;
         background - A 3 element tuple representing the rgb color expected for the background. If left None, a gray to white gradient will be generated;
+        gradient - 
 
         Examples of use
         
@@ -839,7 +899,34 @@ def pie_plot(name, data, width, height, background = None):
         
     '''
 
-    plot = PiePlot(name, data, width, height, background)
+    plot = PiePlot(name, data, width, height, background, gradient)
+    plot.render()
+    plot.commit()
+
+def donut_plot(name, data, width, height, background = None, gradient = False, shadow = False, inner_radius = -1):
+
+    '''
+        Function to plot donut graphics.
+        donut_plot(name, data, width, height, background = None, gradient = False, inner_radius = -1)
+
+        Parameters
+        
+        name - Name of the desired output file, no need to input the .svg as it will be added at runtim;
+        data - The list, list of lists or dictionary holding the data to be plotted;
+        width, height - Dimensions of the output image;
+        background - A 3 element tuple representing the rgb color expected for the background. If left None, a gray to white gradient will be generated;
+        shadow - 
+        gradient - 
+        inner_radius - 
+
+        Examples of use
+        
+        teste_data = {"john" : 123, "mary" : 489, "philip" : 890 , "suzy" : 235}
+        CairoPlot.donut_plot("donut_teste", teste_data, 500, 500)
+        
+    '''
+
+    plot = DonutPlot(name, data, width, height, background, gradient, shadow, inner_radius)
     plot.render()
     plot.commit()
 
@@ -882,10 +969,11 @@ def bar_plot(name,
              h_labels = None, 
              v_labels = None, 
              h_bounds = None, 
-             v_bounds = None):
+             v_bounds = None,
+             colors = None):
 
     plot = BarPlot(name, data, width, height, background, border,
-                   grid, h_labels, v_labels, h_bounds, v_bounds)
+                   grid, h_labels, v_labels, h_bounds, v_bounds, colors)
     plot.render()
     plot.commit()
 

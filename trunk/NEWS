@@ -6,4 +6,5 @@ Version 1.1:
     - Refactored code into OO form for gantt chart
     - Allow use of other types of cairo surfaces
     - Added support for Bar Plots
+    - Added support for Donut Plots
 
