@@ -3,7 +3,7 @@ import cairo
 import math
 
 data = lambda x : math.sin(0.1*x)*math.cos(x)
-CairoPlot.function_plot('function1', data, 800, 300, grid = True, h_bounds=(0,80), step = 0.1)
+CairoPlot.function_plot('function1', data, 800, 300, grid = True, dots = True, h_bounds=(0,80), step = 0.9, discrete = True)
 data = lambda x : x**2
 CairoPlot.function_plot('function2', data, 400, 300, grid = True, h_bounds=(-10,10), step = 0.1)
 

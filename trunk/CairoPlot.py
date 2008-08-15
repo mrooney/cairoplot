@@ -342,7 +342,6 @@ class DotLinePlot(Plot):
         plot_top = self.height - self.borders[VERT]
         
         series_amplitude = self.bounds[VERT][1] - self.bounds[VERT][0]
-        print self.bounds
         
         horizontal_step = float (plot_width) / largest_series_length
         vertical_step = float (plot_height) / series_amplitude
@@ -413,7 +412,6 @@ class FunctionPlot(DotLinePlot):
             while i<self.bounds[HORZ][1]:
                 labels.append(str(i*self.step))
                 i += (self.bounds[HORZ][1] - self.bounds[HORZ][0])/10
-                print i
             #labels = [str(i*self.step) for i in range(self.bounds[HORZ][0], self.bounds[HORZ][1])]
         border = self.borders[HORZ]
         
@@ -436,7 +434,7 @@ class FunctionPlot(DotLinePlot):
 
     def render_plot(self):
         if not self.discrete:
-            DotLinePlot.plot(self)
+            DotLinePlot.render_plot(self)
         else:
             #render_series_labels
             largest_series_length = len(max(self.data, key=len))
