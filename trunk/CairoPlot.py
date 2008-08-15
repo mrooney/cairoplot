@@ -186,6 +186,7 @@ class DotLinePlot(Plot):
                  border=0, 
                  axis = False,
                  grid = False,
+                 dots = False,
                  h_labels = None,
                  v_labels = None,
                  h_bounds = None,
@@ -198,6 +199,7 @@ class DotLinePlot(Plot):
         Plot.__init__(self, surface, data, width, height, background, border, h_labels, v_labels)
         self.axis = axis
         self.grid = grid
+        self.dots = dots
 
         self.max_value = {}
         
@@ -208,7 +210,6 @@ class DotLinePlot(Plot):
         self.calc_boundaries()
     
     def calc_boundaries(self):
-        
         if not self.bounds[HORZ]:
             self.bounds[HORZ] = (0, max([len(series) for series in (self.data)]))
             
@@ -220,7 +221,6 @@ class DotLinePlot(Plot):
                 if min(series) < min_data_value:
                     min_data_value = min(series)
             self.bounds[VERT] = (min_data_value, max_data_value)
-
 
     def calc_extents(self, direction):
         self.max_value[direction] = 0
@@ -237,7 +237,6 @@ class DotLinePlot(Plot):
         
     def calc_vert_extents(self):
         self.calc_extents(VERT)
-        
     
     def render_axis(self):
         cr = self.context
@@ -254,7 +253,6 @@ class DotLinePlot(Plot):
         cr.stroke()
     
     def render_labels(self):
-
         self.context.set_font_size(self.font_size * 0.8)
         
         self.render_horz_labels()
@@ -289,17 +287,14 @@ class DotLinePlot(Plot):
         labels = self.labels[VERT]
         if not labels:
             amplitude = self.bounds[VERT][1] - self.bounds[VERT][0]
-            #if vertical labels need decimal points
+            #if vertical labels need floating points
             if amplitude % 10:
-                label_type = lambda x : int(x)
+                #label_type = lambda x : float(x)
+                labels = ["%.2lf" % (float(self.bounds[VERT][0] + (amplitude * i / 10.0))) for i in range(10) ]
             else:
-                label_type = lambda x: float(x)
-            labels = [str(
-                        label_type(
-                            self.bounds[VERT][0] +
-                            (amplitude * i / 10.0)
-                                  )                
-                         ) for i in range(10) ]
+                #label_type = lambda x: int(x)
+                labels = [str(int(self.bounds[VERT][0] + (amplitude * i / 10.0))) for i in range(10) ]
+            #labels = [str(label_type(self.bounds[VERT][0] + (amplitude * i / 10.0))) for i in range(10) ]
         border = self.borders[VERT]
         
         step = (self.height - 2 * border)/ len(labels)
@@ -347,6 +342,7 @@ class DotLinePlot(Plot):
         plot_top = self.height - self.borders[VERT]
         
         series_amplitude = self.bounds[VERT][1] - self.bounds[VERT][0]
+        print self.bounds
         
         horizontal_step = float (plot_width) / largest_series_length
         vertical_step = float (plot_height) / series_amplitude
@@ -360,16 +356,83 @@ class DotLinePlot(Plot):
 
             for value in series:
                 if last != None:
-                    cr.move_to(x - horizontal_step, plot_top - int(last * vertical_step))
-                    cr.line_to(x, plot_top - int(value * vertical_step))
+                    cr.move_to(x - horizontal_step, plot_top - int((last - self.bounds[VERT][0]) * vertical_step))
+                    cr.line_to(x, plot_top - int((value - self.bounds[VERT][0])* vertical_step))
                     cr.set_line_width(self.series_widths[number])
                     cr.stroke()
-                cr.new_path()
-                cr.arc(x, plot_top - int(value * vertical_step), 3, 0, 2.1 * math.pi)
-                cr.close_path()
-                cr.fill()
+                if self.dots:
+                    cr.new_path()
+                    cr.arc(x, plot_top - int((value - self.bounds[VERT][0]) * vertical_step), 3, 0, 2.1 * math.pi)
+                    cr.close_path()
+                    cr.fill()
                 x += horizontal_step
                 last = value
+
+class FunctionPlot(DotLinePlot):
+    def __init__(self, 
+                 surface=None,
+                 data=None,
+                 width=640,
+                 height=480,
+                 background=None,
+                 border=0, 
+                 axis = False,
+                 grid = False,
+                 dots = False,
+                 h_labels = None,
+                 v_labels = None,
+                 h_bounds = None,
+                 v_bounds = None,
+                 step = 1):
+
+        self.function = data
+        self.step = step
+        data = []
+        if h_bounds:
+            i = h_bounds[0]
+            while i < h_bounds[1]:
+                data.append(self.function(i))
+                i += self.step
+        else:
+            i = 0
+            while i < 10:
+                data.append(self.function(i))
+                i += self.step
+
+        DotLinePlot.__init__(self, surface, data, width, height, background, border, 
+                             axis, grid, dots, h_labels, v_labels, h_bounds, v_bounds)
+    
+    def render_horz_labels(self):
+        cr = self.context
+        labels = self.labels[HORZ]
+        if not labels:
+            labels = []
+            i = self.bounds[HORZ][0]
+            while i<self.bounds[HORZ][1]:
+                labels.append(str(i*self.step))
+                i += (self.bounds[HORZ][1] - self.bounds[HORZ][0])/10
+                print i
+            #labels = [str(i*self.step) for i in range(self.bounds[HORZ][0], self.bounds[HORZ][1])]
+        border = self.borders[HORZ]
+        
+        step = (self.width - 2 * border) / len(labels)
+        x = border
+        for item in labels:
+            cr.set_source_rgb(*self.label_color)
+            width = cr.text_extents(item)[2]
+            cr.move_to(x, self.height - self.borders[VERT] + 10)
+            cr.rotate(self.h_label_angle)
+            cr.show_text(item)
+            cr.rotate(-self.h_label_angle)
+            #FIXME: render grid in a separate method
+            if self.grid and x != border:
+                cr.set_source_rgb(*self.grid_color)
+                cr.move_to(x, self.height - self.borders[VERT])
+                cr.line_to(x, self.borders[VERT])
+                cr.stroke()
+            x += step
+
+
 
 class BarPlot(Plot):
     def __init__(self, 
@@ -380,6 +443,8 @@ class BarPlot(Plot):
                  background = None,
                  border = 0,
                  grid = False,
+                 rounded_corners = False,
+                 three_dimension = False,
                  h_labels = None,
                  v_labels = None,
                  h_bounds = None,
@@ -392,6 +457,8 @@ class BarPlot(Plot):
 
         Plot.__init__(self, surface, data, width, height, background, border, h_labels, v_labels, series_colors)
         self.grid = grid
+        self.rounded_corners = rounded_corners
+        self.three_dimension = three_dimension
 
         self.max_value = {}
 
@@ -444,10 +511,29 @@ class BarPlot(Plot):
         
         if self.grid:
             self.render_grid()
+        if self.three_dimension:
+            self.render_ground()
 
         self.render_labels()
 
         self.render_plot()
+    
+    def draw_3d_rectangle_front(self, x0, y0, x1, y1, shift):
+        self.context.rectangle(x0-shift, y0+shift, x1-x0, y1-y0)
+    def draw_3d_rectangle_side(self, x0, y0, x1, y1, shift):
+        self.context.move_to(x1-shift,y0+shift)
+        self.context.line_to(x1, y0)
+        self.context.line_to(x1, y1)
+        self.context.line_to(x1-shift, y1+shift)
+        self.context.line_to(x1-shift, y0+shift)
+        self.context.close_path()
+    def draw_3d_rectangle_top(self, x0, y0, x1, y1, shift):
+        self.context.move_to(x0-shift,y0+shift)
+        self.context.line_to(x0, y0)
+        self.context.line_to(x1, y0)
+        self.context.line_to(x1-shift, y0+shift)
+        self.context.line_to(x0-shift, y0+shift)
+        self.context.close_path()
 
     def render_grid(self):
         self.context.set_source_rgb(0.8, 0.8, 0.8)
@@ -462,6 +548,27 @@ class BarPlot(Plot):
             self.context.line_to(self.width - self.border, y)
             self.context.stroke()
             y += vertical_step
+
+    def render_ground(self):
+        self.draw_3d_rectangle_front(self.borders[HORZ], self.height - self.borders[VERT], 
+                                     self.width - self.borders[HORZ], self.height - self.borders[VERT] + 5, 10)
+        self.context.fill()
+
+        self.draw_3d_rectangle_side (self.borders[HORZ], self.height - self.borders[VERT], 
+                                     self.width - self.borders[HORZ], self.height - self.borders[VERT] + 5, 10)
+        self.context.fill()
+
+        self.draw_3d_rectangle_top  (self.borders[HORZ], self.height - self.borders[VERT], 
+                                     self.width - self.borders[HORZ], self.height - self.borders[VERT] + 5, 10)
+        self.context.fill()
+
+    def render_labels(self):
+        self.context.set_font_size(self.font_size * 0.8)
+
+        if self.labels[HORZ]:
+            self.render_horz_labels()
+        if self.labels[VERT]:
+            self.render_vert_labels()
 
     def render_labels(self):
         self.context.set_font_size(self.font_size * 0.8)
@@ -494,6 +601,17 @@ class BarPlot(Plot):
             self.context.show_text(item)
             y += step
         self.labels[VERT].reverse()
+        
+    def draw_rectangle(self, x0, y0, x1, y1):
+        self.context.arc(x0+5, y0+5, 5, -math.pi, -math.pi/2)
+        self.context.line_to(x1-5, y0)
+        self.context.arc(x1-5, y0+5, 5, -math.pi/2, 0)
+        self.context.line_to(x1, y1-5)
+        self.context.arc(x1-5, y1-5, 5, 0, math.pi/2)
+        self.context.line_to(x0+5, y1)
+        self.context.arc(x0+5, y1-5, 5, math.pi/2, math.pi)
+        self.context.line_to(x0, y0+5)
+        self.context.close_path()
 
     def render_plot(self):
         plot_width = self.width - self.borders[HORZ] - self.border
@@ -516,8 +634,21 @@ class BarPlot(Plot):
                 linear.add_color_stop_rgb(0.0, 3.5*r/5.0, 3.5*g/5.0, 3.5*b/5.0)
                 linear.add_color_stop_rgb(1.0, r, g, b)
                 self.context.set_source(linear)
-                self.context.rectangle(x0, y0 + (series_amplitude - key)*vertical_step, inner_step, key*vertical_step)
-                self.context.fill()
+                
+                if self.rounded_corners and key != 0:
+                    self.draw_rectangle(x0, y0 + (series_amplitude - key)*vertical_step, x0+inner_step, y0 + series_amplitude*vertical_step)
+                    self.context.fill()
+                elif self.three_dimension:
+                    self.draw_3d_rectangle_front(x0, y0 + (series_amplitude - key)*vertical_step, x0+inner_step, y0 + series_amplitude*vertical_step, 5)
+                    self.context.fill()
+                    self.draw_3d_rectangle_side(x0, y0 + (series_amplitude - key)*vertical_step, x0+inner_step, y0 + series_amplitude*vertical_step, 5)
+                    self.context.fill()
+                    self.draw_3d_rectangle_top(x0, y0 + (series_amplitude - key)*vertical_step, x0+inner_step, y0 + series_amplitude*vertical_step, 5)
+                    self.context.fill()
+                else:
+                    self.context.rectangle(x0, y0 + (series_amplitude - key)*vertical_step, inner_step, key*vertical_step)
+                    self.context.fill()
+                
                 x0 += inner_step
 
 class PiePlot(Plot):
@@ -842,6 +973,7 @@ def dot_line_plot(name,
                   border = 0,
                   axis = False,
                   grid = False,
+                  dots = False,
                   h_legend = None,
                   v_legend = None,
                   h_bounds = None,
@@ -859,6 +991,7 @@ def dot_line_plot(name,
         border - Distance in pixels of a square border into which the graphics will be drawn;
         axis - Whether or not the axis are to be drawn;
         grid - Whether or not the gris is to be drawn;
+        dots - 
         h_legend, v_legend - lists of strings containing the horizontal and vertical legends for the axis;
         h_bounds, v_bounds - tuples containing the lower and upper value bounds for the data to be plotted.
 
@@ -872,10 +1005,29 @@ def dot_line_plot(name,
         CairoPlot.dot_line_plot('teste2', teste_data_2, 400, 300, axis = True, grid = True, h_legend = teste_h_legend)
     '''
     plot = DotLinePlot(name, data, width, height, background, border,
-                       axis, grid, h_legend, v_legend, h_bounds, v_bounds)
+                       axis, grid, dots, h_legend, v_legend, h_bounds, v_bounds)
     plot.render()
     plot.commit()
 
+def function_plot(name,
+                  data,
+                  width,
+                  height,
+                  background = None,
+                  border = 0,
+                  axis = True,
+                  grid = False,
+                  dots = False,
+                  h_legend = None,
+                  v_legend = None,
+                  h_bounds = None,
+                  v_bounds = None,
+                  step = 1):
+    
+    plot = FunctionPlot(name, data, width, height, background, border,
+                        axis, grid, dots, h_legend, v_legend, h_bounds, v_bounds, step)
+    plot.render()
+    plot.commit()
 
 
 def pie_plot(name, data, width, height, background = None, gradient = False):
@@ -965,7 +1117,9 @@ def bar_plot(name,
              height, 
              background = None, 
              border = 0, 
-             grid = False, 
+             grid = False,
+             rounded_corners = False,
+             three_dimension = False,
              h_labels = None, 
              v_labels = None, 
              h_bounds = None, 
@@ -973,7 +1127,7 @@ def bar_plot(name,
              colors = None):
 
     plot = BarPlot(name, data, width, height, background, border,
-                   grid, h_labels, v_labels, h_bounds, v_bounds, colors)
+                   grid, rounded_corners, three_dimension, h_labels, v_labels, h_bounds, v_bounds, colors)
     plot.render()
     plot.commit()
 

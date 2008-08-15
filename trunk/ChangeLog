@@ -1,5 +1,14 @@
 
 2008-08-14  Rodrigo Araújo <alf.rodrigo@gmail.com>
+        * CairoPlot.py: Added FunctionPlot
+                        Added rounded corners option to Bar Plot
+                        Added pseudo 3D option to Bar Plot
+                        Set the default for the DotLinePlot to plot without
+                        the dots
+        * tests.py: Added new tests for the function_plot function
+                    Added new tests fot BarPlot new options
+
+2008-08-14  Rodrigo Araújo <alf.rodrigo@gmail.com>
         * CairoPlot.py: Added DonutPlot
         * tests.py: Added new tests for the donut_plot function
 
