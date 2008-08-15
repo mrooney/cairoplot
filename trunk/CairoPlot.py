@@ -383,10 +383,12 @@ class FunctionPlot(DotLinePlot):
                  v_labels = None,
                  h_bounds = None,
                  v_bounds = None,
-                 step = 1):
+                 step = 1,
+                 discrete = False):
 
         self.function = data
         self.step = step
+        self.discrete = discrete
         data = []
         if h_bounds:
             i = h_bounds[0]
@@ -431,6 +433,39 @@ class FunctionPlot(DotLinePlot):
                 cr.line_to(x, self.borders[VERT])
                 cr.stroke()
             x += step
+
+    def render_plot(self):
+        if not self.discrete:
+            DotLinePlot.plot(self)
+        else:
+            #render_series_labels
+            largest_series_length = len(max(self.data, key=len))
+            #FIXME: plot_width and plot_height should be object properties and be re-used.
+            plot_width = self.width - 2* self.borders[HORZ]
+            plot_height = self.height - 2 * self.borders[VERT]
+            plot_top = self.height - self.borders[VERT]
+
+            series_amplitude = self.bounds[VERT][1] - self.bounds[VERT][0]
+
+            horizontal_step = float (plot_width) / largest_series_length
+            vertical_step = float (plot_height) / series_amplitude
+            last = None
+            cr = self.context
+            for number, series in  enumerate (self.data):
+                cr.set_source_rgb(*self.series_colors[number])
+                x = self.borders[HORZ]
+                for value in series:
+                    cr.move_to(x, plot_top - int((value - self.bounds[VERT][0]) * vertical_step))
+                    cr.line_to(x, plot_top)
+                    cr.set_line_width(self.series_widths[number])
+                    cr.stroke()
+                    if self.dots:
+                        cr.new_path()
+                        cr.arc(x, plot_top - int((value - self.bounds[VERT][0]) * vertical_step), 3, 0, 2.1 * math.pi)
+                        cr.close_path()
+                        cr.fill()
+                    x += horizontal_step
+
 
 
 
@@ -1022,10 +1057,11 @@ def function_plot(name,
                   v_legend = None,
                   h_bounds = None,
                   v_bounds = None,
-                  step = 1):
+                  step = 1,
+                  discrete = False):
     
     plot = FunctionPlot(name, data, width, height, background, border,
-                        axis, grid, dots, h_legend, v_legend, h_bounds, v_bounds, step)
+                        axis, grid, dots, h_legend, v_legend, h_bounds, v_bounds, step, discrete)
     plot.render()
     plot.commit()
 

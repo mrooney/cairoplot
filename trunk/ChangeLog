@@ -1,4 +1,7 @@
 
+2008-08-15  Rodrigo Araújo <alf.rodrigo@gmail.com>
+        * CairoPlot.py: Added discrete series option to FunctionPlot
+
 2008-08-14  Rodrigo Araújo <alf.rodrigo@gmail.com>
         * CairoPlot.py: Added FunctionPlot
                         Added rounded corners option to Bar Plot
