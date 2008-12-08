@@ -327,14 +327,57 @@ class DotLinePlot(Plot):
         
         self.render_plot()
         
-    def render_series_labels(self):
-        #FIXME: implement this
+        if self.series_labels:
+            self.render_legend()
+        
+    def render_legend(self):
+        cr = self.context
+        cr.set_font_size(self.font_size)
+        cr.set_line_width(self.line_width*1)
+
+        widest_word = max(self.series_labels, key = lambda item: self.context.text_extents(item)[2])
+        max_width = self.context.text_extents(widest_word)[2]
+        tallest_word = max(self.series_labels, key = lambda item: self.context.text_extents(item)[3])
+        max_height = self.context.text_extents(tallest_word)[3]
+        
+        #Add a bounding box
+        bounding_box_width = max_width+25
+        bounding_box_height = (len(self.series_labels)+0.5) * max_height
+        cr.set_source_rgb(1,1,1)
+        cr.rectangle(self.width - self.borders[HORZ]- bounding_box_width, self.borders[VERT],
+                            bounding_box_width, bounding_box_height)
+        cr.fill()
+        
+        cr.set_source_rgb(*self.line_color)
+        cr.set_line_width(self.line_width)
+        cr.rectangle(self.width - self.borders[HORZ]- bounding_box_width, self.borders[VERT],
+                            bounding_box_width, bounding_box_height)
+        cr.stroke()
+
+        color_box_width = 10
+        color_box_height = max_height / 2
+        i = 0
         for key in self.series_labels:
-            pass
-            #This was not working in Rodrigo's original code anyway 
+            #Create color box
+            cr.set_source_rgb(*self.series_colors[i])
+            cr.rectangle(self.width - self.borders[HORZ] - max_width - color_box_width - 10, 
+                                self.borders[VERT] + color_box_height + (i*max_height) ,
+                                color_box_width, color_box_height)
+            cr.fill()
+            
+            cr.set_source_rgb(0, 0, 0)
+            cr.rectangle(self.width - self.borders[HORZ] - max_width - color_box_width - 10, 
+                                self.borders[VERT] + color_box_height + (i*max_height),
+                                color_box_width, color_box_height)
+            cr.stroke()
+            
+            # Create labels
+            cr.set_source_rgb(0, 0, 0)
+            cr.move_to(self.width - self.borders[HORZ] - max_width - 5, self.borders[VERT] + ((i+1)*max_height))
+            cr.show_text(key)
+            i += 1
 
     def render_plot(self):
-        #render_series_labels
         largest_series_length = len(max(self.data, key=len))
         #FIXME: plot_width and plot_height should be object properties and be re-used.
         plot_width = self.width - 2* self.borders[HORZ]
