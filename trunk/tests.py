@@ -31,10 +31,10 @@ CairoPlot.function_plot('function2', data, 400, 300, grid = True, h_bounds=(-10,
 #teste_data_2 = {"john" : [-5, -2, 0, 1, 3], "mary" : [0, 0, 3, 5, 2], "philip" : [-2, -3, -4, 2, 1]}
 #teste_h_legend = ["jan/2008", "feb/2008", "mar/2008", "apr/2008", "may/2008"]
 #teste_v_legend = ["jan/2008", "feb/2008", "mar/2008", "apr/2008", "may/2008"]
-#CairoPlot.dot_line_plot('teste2', teste_data_2, 400, 300, h_legend = teste_h_legend, v_legend = teste_v_legend, axis = True, grid = True)
+#CairoPlot.dot_line_plot('teste2', teste_data_2, 400, 300, series_legend = False, h_legend = teste_h_legend, v_legend = teste_v_legend, axis = True, grid = True)
 #teste_data_2 = {"john" : [10, 10, 10, 10, 30], "mary" : [0, 0, 3, 5, 15], "philip" : [13, 32, 11, 25, 2]}
 #teste_h_legend = ["jan/2008", "feb/2008", "mar/2008", "apr/2008", "may/2008"]
-#CairoPlot.dot_line_plot('teste3', teste_data_2, 400, 300, h_legend = teste_h_legend, axis = True, grid = True)
+#CairoPlot.dot_line_plot('teste3', teste_data_2, 400, 300, series_legend = True, h_legend = teste_h_legend, axis = True, grid = True)
 
 #background = cairo.LinearGradient(300, 0, 300, 400)
 #background.add_color_stop_rgb(0,0.4,0.4,0.4)
