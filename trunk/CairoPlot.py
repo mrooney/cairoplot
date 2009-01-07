@@ -191,7 +191,8 @@ class DotLinePlot(Plot):
                  v_labels = None,
                  h_bounds = None,
                  v_bounds = None,
-                 series_colors = None):
+                 series_colors = None,
+                 series_legend = False):
         
         self.bounds = {}
         self.bounds[HORZ] = h_bounds
@@ -201,6 +202,7 @@ class DotLinePlot(Plot):
         self.axis = axis
         self.grid = grid
         self.dots = dots
+        self.series_legend = series_legend
 
         self.max_value = {}
         
@@ -328,14 +330,58 @@ class DotLinePlot(Plot):
         
         self.render_plot()
         
-    def render_series_labels(self):
-        #FIXME: implement this
+        if self.series_legend and self.series_labels:
+            self.render_legend()
+        
+    def render_legend(self):
+        cr = self.context
+        cr.set_font_size(self.font_size)
+        cr.set_line_width(self.line_width*1)
+
+        widest_word = max(self.series_labels, key = lambda item: self.context.text_extents(item)[2])
+        max_width = self.context.text_extents(widest_word)[2]
+        tallest_word = max(self.series_labels, key = lambda item: self.context.text_extents(item)[3])
+        max_height = self.context.text_extents(tallest_word)[3] * 1.1
+        
+        color_box_height = max_height / 2
+        color_box_width = color_box_height * 2
+        
+        #Add a bounding box
+        bounding_box_width = max_width + color_box_width + 15
+        bounding_box_height = (len(self.series_labels)+0.5) * max_height
+        cr.set_source_rgb(1,1,1)
+        cr.rectangle(self.width - self.borders[HORZ] - bounding_box_width, self.borders[VERT],
+                            bounding_box_width, bounding_box_height)
+        cr.fill()
+        
+        cr.set_source_rgb(*self.line_color)
+        cr.set_line_width(self.line_width)
+        cr.rectangle(self.width - self.borders[HORZ] - bounding_box_width, self.borders[VERT],
+                            bounding_box_width, bounding_box_height)
+        cr.stroke()
+
+        i = 0
         for key in self.series_labels:
-            pass
-            #This was not working in Rodrigo's original code anyway 
+            #Create color box
+            cr.set_source_rgb(*self.series_colors[i])
+            cr.rectangle(self.width - self.borders[HORZ] - max_width - color_box_width - 10, 
+                                self.borders[VERT] + color_box_height + (i*max_height) ,
+                                color_box_width, color_box_height)
+            cr.fill()
+            
+            cr.set_source_rgb(0, 0, 0)
+            cr.rectangle(self.width - self.borders[HORZ] - max_width - color_box_width - 10, 
+                                self.borders[VERT] + color_box_height + (i*max_height),
+                                color_box_width, color_box_height)
+            cr.stroke()
+            
+            # Create labels
+            cr.set_source_rgb(0, 0, 0)
+            cr.move_to(self.width - self.borders[HORZ] - max_width - 5, self.borders[VERT] + ((i+1)*max_height))
+            cr.show_text(key)
+            i += 1
 
     def render_plot(self):
-        #render_series_labels
         largest_series_length = len(max(self.data, key=len))
         #FIXME: plot_width and plot_height should be object properties and be re-used.
         plot_width = self.width - 2* self.borders[HORZ]
@@ -402,7 +448,7 @@ class FunctionPlot(DotLinePlot):
                 i += self.step
 
         DotLinePlot.__init__(self, surface, data, width, height, background, border, 
-                             axis, grid, dots, h_labels, v_labels, h_bounds, v_bounds)
+                             axis, grid, dots, False, h_labels, v_labels, h_bounds, v_bounds)
     
     def render_horz_labels(self):
         cr = self.context
@@ -1008,6 +1054,7 @@ def dot_line_plot(name,
                   axis = False,
                   grid = False,
                   dots = False,
+                  series_legend = False,
                   h_legend = None,
                   v_legend = None,
                   h_bounds = None,
@@ -1026,7 +1073,8 @@ def dot_line_plot(name,
         border - Distance in pixels of a square border into which the graphics will be drawn;
         axis - Whether or not the axis are to be drawn;
         grid - Whether or not the gris is to be drawn;
-        dots - 
+        dots - Whether or not dots should be drawn on each point;
+        series_legend - Whether or not the legend is to be drawn;
         h_legend, v_legend - lists of strings containing the horizontal and vertical legends for the axis;
         h_bounds, v_bounds - tuples containing the lower and upper value bounds for the data to be plotted.
 
@@ -1037,10 +1085,10 @@ def dot_line_plot(name,
         
         teste_data_2 = {"john" : [10, 10, 10, 10, 30], "mary" : [0, 0, 3, 5, 15], "philip" : [13, 32, 11, 25, 2]}
         teste_h_legend = ["jan/2008", "feb/2008", "mar/2008", "apr/2008", "may/2008"]
-        CairoPlot.dot_line_plot('teste2', teste_data_2, 400, 300, axis = True, grid = True, h_legend = teste_h_legend)
+        CairoPlot.dot_line_plot('teste2', teste_data_2, 400, 300, axis = True, grid = True, series_legend = True, h_legend = teste_h_legend)
     '''
     plot = DotLinePlot(name, data, width, height, background, border,
-                       axis, grid, dots, h_legend, v_legend, h_bounds, v_bounds, series_colors)
+                       axis, grid, dots, h_legend, v_legend, h_bounds, v_bounds, series_colors, series_legend)
     plot.render()
     plot.commit()
 

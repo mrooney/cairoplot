@@ -9,7 +9,7 @@ Medium Priority:
     - Implement data series as classes and objects
     - Implement Bar and Histogram charts
     - Enhance conformity with English terminology
-    - Create more graphic elements (axis titles, data legend, etc...)
+    - Create more graphic elements (axis titles, etc...)
     - Create a python egg and setup-tools style install
     - Allow different combinations of line, dot, area plots for linear series
     - add pseudo_3D effects
