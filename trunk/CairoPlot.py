@@ -190,13 +190,14 @@ class DotLinePlot(Plot):
                  h_labels = None,
                  v_labels = None,
                  h_bounds = None,
-                 v_bounds = None):
+                 v_bounds = None,
+                 series_colors = None):
         
         self.bounds = {}
         self.bounds[HORZ] = h_bounds
         self.bounds[VERT] = v_bounds
         
-        Plot.__init__(self, surface, data, width, height, background, border, h_labels, v_labels)
+        Plot.__init__(self, surface, data, width, height, background, border, h_labels, v_labels, series_colors)
         self.axis = axis
         self.grid = grid
         self.dots = dots
@@ -1010,7 +1011,8 @@ def dot_line_plot(name,
                   h_legend = None,
                   v_legend = None,
                   h_bounds = None,
-                  v_bounds = None):
+                  v_bounds = None,
+                  series_colors = None):
     '''
         Function to plot graphics using dots and lines.
         dot_line_plot (name, data, width, height, background = None, border = 0, axis = False, grid = False, h_legend = None, v_legend = None, h_bounds = None, v_bounds = None)
@@ -1038,7 +1040,7 @@ def dot_line_plot(name,
         CairoPlot.dot_line_plot('teste2', teste_data_2, 400, 300, axis = True, grid = True, h_legend = teste_h_legend)
     '''
     plot = DotLinePlot(name, data, width, height, background, border,
-                       axis, grid, dots, h_legend, v_legend, h_bounds, v_bounds)
+                       axis, grid, dots, h_legend, v_legend, h_bounds, v_bounds, series_colors)
     plot.render()
     plot.commit()
 
