@@ -226,15 +226,16 @@ class DotLinePlot(Plot):
             self.bounds[VERT] = (min_data_value, max_data_value)
 
     def calc_extents(self, direction):
+        self.context.set_font_size(self.font_size * 0.8)
         self.max_value[direction] = 0
         if self.labels[direction]:
             widest_word = max(self.labels[direction], key = lambda item: self.context.text_extents(item)[2])
             self.max_value[direction] = self.context.text_extents(widest_word)[2]
-            self.borders[other_direction(direction)] = self.max_value[direction] + self.border
+            self.borders[other_direction(direction)] = self.max_value[direction] + self.border + 20
         else:
             self.max_value[direction] = self.context.text_extents(str(self.bounds[direction][1]))[2]
             self.borders[other_direction(direction)] = self.max_value[direction] + self.border + 20
-            
+
     def calc_horz_extents(self):
         self.calc_extents(HORZ)
         
