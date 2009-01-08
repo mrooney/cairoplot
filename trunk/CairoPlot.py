@@ -99,7 +99,7 @@ class Plot(object):
     def commit(self):
         try:
             self.context.show_page()
-            if self.filename.endswith(".png"):
+            if self.filename and self.filename.endswith(".png"):
                 self.surface.write_to_png(self.filename)
             else:
                 self.surface.finish()
@@ -185,14 +185,16 @@ class DotLinePlot(Plot):
                  background=None,
                  border=0, 
                  axis = False,
-                 grid = False,
+                 dash = False,
                  dots = False,
+                 grid = False,
+                 series_legend = False,
                  h_labels = None,
                  v_labels = None,
                  h_bounds = None,
                  v_bounds = None,
-                 series_colors = None,
-                 series_legend = False):
+                 v_title  = None,
+                 series_colors = None):
         
         self.bounds = {}
         self.bounds[HORZ] = h_bounds
@@ -200,13 +202,23 @@ class DotLinePlot(Plot):
         
         Plot.__init__(self, surface, data, width, height, background, border, h_labels, v_labels, series_colors)
         self.axis = axis
-        self.grid = grid
         self.dots = dots
+        self.grid = grid
         self.series_legend = series_legend
+        self.v_title = v_title
 
         self.max_value = {}
         
         self.h_label_angle = math.pi / 2.5
+
+        self.dash = None
+        if dash:
+            if hasattr(dash, "keys"):
+                self.dash = [dash[key] for key in self.series_labels]
+            elif max([hasattr(item,'__delitem__') for item in data]) :
+                self.dash = dash
+            else:
+                self.dash = [dash]
 
     def load_series(self, data, h_labels = None, v_labels = None, series_colors=None):
         Plot.load_series(self, data, h_labels, v_labels, series_colors)
@@ -214,7 +226,7 @@ class DotLinePlot(Plot):
     
     def calc_boundaries(self):
         if not self.bounds[HORZ]:
-            self.bounds[HORZ] = (0, max([len(series) for series in (self.data)]))
+            self.bounds[HORZ] = (0, max( len(series) for series in self.data ))
             
         if not self.bounds[VERT]:
             max_data_value = min_data_value = 0
@@ -229,18 +241,25 @@ class DotLinePlot(Plot):
         self.context.set_font_size(self.font_size * 0.8)
         self.max_value[direction] = 0
         if self.labels[direction]:
-            widest_word = max(self.labels[direction], key = lambda item: self.context.text_extents(item)[2])
-            self.max_value[direction] = self.context.text_extents(widest_word)[2]
+            self.max_value[direction] = max(self.context.text_extents(item)[2] for item in self.labels[direction])
             self.borders[other_direction(direction)] = self.max_value[direction] + self.border + 20
         else:
             self.max_value[direction] = self.context.text_extents(str(self.bounds[direction][1]))[2]
             self.borders[other_direction(direction)] = self.max_value[direction] + self.border + 20
 
-    def calc_horz_extents(self):
+    def calc_all_extents(self):
         self.calc_extents(HORZ)
-        
-    def calc_vert_extents(self):
         self.calc_extents(VERT)
+
+        self.plot_height = self.height - 2 * self.borders[VERT]
+        self.plot_top = self.height - self.borders[VERT]
+        series_amplitude = self.bounds[VERT][1] - self.bounds[VERT][0]
+        self.vertical_step = float (self.plot_height) / series_amplitude
+
+        self.plot_width = self.width - 2* self.borders[HORZ]
+        largest_series_length = max(len(x) for x in self.data)
+        self.horizontal_step = float (self.plot_width) / largest_series_length
+
     
     def render_axis(self):
         cr = self.context
@@ -269,12 +288,12 @@ class DotLinePlot(Plot):
             labels = [str(i) for i in range(self.bounds[HORZ][0], self.bounds[HORZ][1])]
         border = self.borders[HORZ]
         
-        step = (self.width - 2 * border) / len(labels)
+        step = float(self.width - 2 * border) / len(labels)
         x = border
         for item in labels:
             cr.set_source_rgb(*self.label_color)
             width = cr.text_extents(item)[2]
-            cr.move_to(x, self.height - self.borders[VERT] + 10)
+            cr.move_to(x, self.height - self.borders[VERT] + 5)
             cr.rotate(self.h_label_angle)
             cr.show_text(item)
             cr.rotate(-self.h_label_angle)
@@ -293,15 +312,12 @@ class DotLinePlot(Plot):
             amplitude = self.bounds[VERT][1] - self.bounds[VERT][0]
             #if vertical labels need floating points
             if amplitude % 10:
-                #label_type = lambda x : float(x)
-                labels = ["%.2lf" % (float(self.bounds[VERT][0] + (amplitude * i / 10.0))) for i in range(10) ]
+                labels = ["%.2lf" % (float(self.bounds[VERT][0] + (amplitude * i / 10.0))) for i in range(11) ]
             else:
-                #label_type = lambda x: int(x)
-                labels = [str(int(self.bounds[VERT][0] + (amplitude * i / 10.0))) for i in range(10) ]
-            #labels = [str(label_type(self.bounds[VERT][0] + (amplitude * i / 10.0))) for i in range(10) ]
+                labels = [str(int(self.bounds[VERT][0] + (amplitude * i / 10.0))) for i in range(11) ]
         border = self.borders[VERT]
         
-        step = (self.height - 2 * border)/ len(labels)
+        step = (self.height - 2 * border)/( len(labels) - 1 )
         y = self.height - border
         for item in labels:
             cr.set_source_rgb(*self.label_color)
@@ -315,11 +331,15 @@ class DotLinePlot(Plot):
                 cr.line_to(self.width - self.borders[HORZ], y)
                 cr.stroke()
             y -=step
-    
+
+        if self.v_title:
+            cr.set_source_rgb(*self.label_color)
+            cr.set_font_size(self.font_size)
+            cr.move_to(5,y + step - self.font_size)
+            cr.show_text(self.v_title)
     
     def render(self):
-        self.calc_horz_extents()
-        self.calc_vert_extents()
+        self.calc_all_extents()
             
         self.render_background()
         self.render_bounding_box()
@@ -383,16 +403,6 @@ class DotLinePlot(Plot):
             i += 1
 
     def render_plot(self):
-        largest_series_length = len(max(self.data, key=len))
-        #FIXME: plot_width and plot_height should be object properties and be re-used.
-        plot_width = self.width - 2* self.borders[HORZ]
-        plot_height = self.height - 2 * self.borders[VERT]
-        plot_top = self.height - self.borders[VERT]
-        
-        series_amplitude = self.bounds[VERT][1] - self.bounds[VERT][0]
-        
-        horizontal_step = float (plot_width) / largest_series_length
-        vertical_step = float (plot_height) / series_amplitude
         last = None
         cr = self.context
         for number, series in  enumerate (self.data):
@@ -402,17 +412,24 @@ class DotLinePlot(Plot):
             #FIXME: separate plotting of lines, dots and area
 
             for value in series:
-                if last != None:
-                    cr.move_to(x - horizontal_step, plot_top - int((last - self.bounds[VERT][0]) * vertical_step))
-                    cr.line_to(x, plot_top - int((value - self.bounds[VERT][0])* vertical_step))
+                if last != None and value != None:
+                    cr.move_to(x - self.horizontal_step, self.plot_top - int((last - self.bounds[VERT][0]) * self.vertical_step))
+                    cr.line_to(x, self.plot_top - int((value - self.bounds[VERT][0])* self.vertical_step))
                     cr.set_line_width(self.series_widths[number])
+
+                    # Display line as dash line 
+                    if self.dash and self.dash[number]:
+                        s = self.series_widths[number]
+                        cr.set_dash([s*3, s*3], 0)
+
                     cr.stroke()
-                if self.dots:
+                    cr.set_dash([])
+                if self.dots and value != None and not (self.dash and self.dash[number]):
                     cr.new_path()
-                    cr.arc(x, plot_top - int((value - self.bounds[VERT][0]) * vertical_step), 3, 0, 2.1 * math.pi)
+                    cr.arc(x, self.plot_top - int((value - self.bounds[VERT][0]) * self.vertical_step), 3, 0, 2.1 * math.pi)
                     cr.close_path()
                     cr.fill()
-                x += horizontal_step
+                x += self.horizontal_step
                 last = value
 
 class FunctionPlot(DotLinePlot):
@@ -424,14 +441,14 @@ class FunctionPlot(DotLinePlot):
                  background=None,
                  border=0, 
                  axis = False,
-                 grid = False,
+                 discrete = False,
                  dots = False,
+                 grid = False,
                  h_labels = None,
                  v_labels = None,
                  h_bounds = None,
                  v_bounds = None,
-                 step = 1,
-                 discrete = False):
+                 step = 1):
 
         self.function = data
         self.step = step
@@ -449,7 +466,7 @@ class FunctionPlot(DotLinePlot):
                 i += self.step
 
         DotLinePlot.__init__(self, surface, data, width, height, background, border, 
-                             axis, grid, dots, False, h_labels, v_labels, h_bounds, v_bounds)
+                             axis, False, dots, grid, False, h_labels, v_labels, h_bounds, v_bounds, None)
     
     def render_horz_labels(self):
         cr = self.context
@@ -485,7 +502,7 @@ class FunctionPlot(DotLinePlot):
             DotLinePlot.render_plot(self)
         else:
             #render_series_labels
-            largest_series_length = len(max(self.data, key=len))
+            largest_series_length = max(len(x) for x in self.data)
             #FIXME: plot_width and plot_height should be object properties and be re-used.
             plot_width = self.width - 2* self.borders[HORZ]
             plot_height = self.height - 2 * self.borders[VERT]
@@ -546,8 +563,8 @@ class BarPlot(Plot):
     def load_series(self, data, h_labels = None, v_labels = None, series_colors = None):
         Plot.load_series(self, data, h_labels, v_labels, series_colors)
         if not series_colors:
-            if hasattr( max(self.data, key = len), '__getitem__'):
-                self.series_colors = [[random.random() for i in range(3)]  for item in max(self.data, key = len)]
+            if hasattr(self.data[0], '__getitem__'):
+                self.series_colors = [[random.random() for i in range(3)]  for item in range(max(len(x) for x in self.data))]
             else:
                 self.series_colors = [[random.random() for i in range(3)]  for series in self.data]
         self.calc_boundaries()
@@ -885,8 +902,7 @@ class GanttChart (Plot) :
     def calc_extents(self, direction):
         self.max_value[direction] = 0
         if self.labels[direction]:
-            widest_word = max(self.labels[direction], key = lambda item: self.context.text_extents(item)[2])
-            self.max_value[direction] = self.context.text_extents(widest_word)[2]
+            self.max_value[direction] = max(self.context.text_extents(item)[2] for item in self.labels[direction])
         else:
             self.max_value[direction] = self.context.text_extents( str(self.bounds[direction][1] + 1) )[2]
 
@@ -1053,13 +1069,15 @@ def dot_line_plot(name,
                   background = None,
                   border = 0,
                   axis = False,
-                  grid = False,
+                  dash = False,
                   dots = False,
+                  grid = False,
                   series_legend = False,
                   h_legend = None,
                   v_legend = None,
                   h_bounds = None,
                   v_bounds = None,
+                  v_title  = None,
                   series_colors = None):
     '''
         Function to plot graphics using dots and lines.
@@ -1073,11 +1091,13 @@ def dot_line_plot(name,
         background - A 3 element tuple representing the rgb color expected for the background. If left None, a gray to white gradient will be generated;
         border - Distance in pixels of a square border into which the graphics will be drawn;
         axis - Whether or not the axis are to be drawn;
-        grid - Whether or not the gris is to be drawn;
+        dash - Boolean or a list or a dictionary of booleans indicating whether or not the associated series should be drawn in dashed mode;
         dots - Whether or not dots should be drawn on each point;
+        grid - Whether or not the gris is to be drawn;
         series_legend - Whether or not the legend is to be drawn;
         h_legend, v_legend - lists of strings containing the horizontal and vertical legends for the axis;
-        h_bounds, v_bounds - tuples containing the lower and upper value bounds for the data to be plotted.
+        h_bounds, v_bounds - tuples containing the lower and upper value bounds for the data to be plotted;
+        v_title - Whether or not to plot a title over the y axis.
 
         Examples of use
 
@@ -1089,7 +1109,7 @@ def dot_line_plot(name,
         CairoPlot.dot_line_plot('teste2', teste_data_2, 400, 300, axis = True, grid = True, series_legend = True, h_legend = teste_h_legend)
     '''
     plot = DotLinePlot(name, data, width, height, background, border,
-                       axis, grid, dots, h_legend, v_legend, h_bounds, v_bounds, series_colors, series_legend)
+                       axis, dash, dots, grid, series_legend, h_legend, v_legend, h_bounds, v_bounds, v_title, series_colors)
     plot.render()
     plot.commit()
 
@@ -1100,17 +1120,17 @@ def function_plot(name,
                   background = None,
                   border = 0,
                   axis = True,
-                  grid = False,
                   dots = False,
+                  discrete = False,
+                  grid = False,
                   h_legend = None,
                   v_legend = None,
                   h_bounds = None,
                   v_bounds = None,
-                  step = 1,
-                  discrete = False):
+                  step = 1):
     
     plot = FunctionPlot(name, data, width, height, background, border,
-                        axis, grid, dots, h_legend, v_legend, h_bounds, v_bounds, step, discrete)
+                        axis, discrete, dots, grid, h_legend, v_legend, h_bounds, v_bounds, step)
     plot.render()
     plot.commit()
 
