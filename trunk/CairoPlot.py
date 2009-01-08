@@ -476,8 +476,7 @@ class FunctionPlot(DotLinePlot):
             i = self.bounds[HORZ][0]
             while i<self.bounds[HORZ][1]:
                 labels.append(str(i*self.step))
-                i += (self.bounds[HORZ][1] - self.bounds[HORZ][0])/10
-            #labels = [str(i*self.step) for i in range(self.bounds[HORZ][0], self.bounds[HORZ][1])]
+                i += float(self.bounds[HORZ][1] - self.bounds[HORZ][0])/10
         border = self.borders[HORZ]
         
         step = (self.width - 2 * border) / len(labels)
