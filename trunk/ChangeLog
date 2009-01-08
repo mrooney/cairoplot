@@ -1,4 +1,16 @@
 
+2009-01-07  Rodrigo Araújo <alf.rodrigo@gmail.com>
+        * CairoPlot.py: Bug fixes;
+        				Sebastien Cote was responsible for the addition of
+        				series' colors and legends and also for a bug fix when
+        				drawing h_labels;
+        				Paul Hummer (from Canonical) was responsible for the
+        				'python setup.py install' new installation method;
+        				Josselin Mouette and her crew were responsible for
+        				some code refactoring and the ability to add a title
+        				to the y axis;
+        * tests.py: Updated tests for FunctionPlot.
+
 2008-08-15  Rodrigo Araújo <alf.rodrigo@gmail.com>
         * CairoPlot.py: Added discrete series option to FunctionPlot
         * tests.py: Added new tests for FunctionPlot new option
