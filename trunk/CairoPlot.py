@@ -448,26 +448,59 @@ class FunctionPlot(DotLinePlot):
                  v_labels = None,
                  h_bounds = None,
                  v_bounds = None,
+                 series_colors = None, 
                  step = 1):
 
         self.function = data
         self.step = step
         self.discrete = discrete
-        data = []
-        if h_bounds:
-            i = h_bounds[0]
-            while i < h_bounds[1]:
-                data.append(self.function(i))
-                i += self.step
-        else:
-            i = 0
-            while i < 10:
-                data.append(self.function(i))
-                i += self.step
+        
+        data, h_bounds = self.load_series_from_function( self.function, h_bounds )
 
         DotLinePlot.__init__(self, surface, data, width, height, background, border, 
-                             axis, False, dots, grid, False, h_labels, v_labels, h_bounds, v_bounds, None)
+                             axis, False, dots, grid, False, h_labels, v_labels, 
+                             h_bounds, v_bounds, None,series_colors)
     
+    def load_series_from_function( self, function, h_bounds ):
+        #This function converts a function, a list of functions or a dictionary
+        #of functions into its corresponding array of data
+        
+        #return variable
+        data = None
+        
+        #if no bounds are provided
+        if h_bounds == None:
+            h_bounds = (0,10)
+        
+        #dictionary:
+        if hasattr(function, "keys"):
+            data = {}
+            for key in function.keys():
+                data[ key ] = []
+                i = h_bounds[0]
+                while i < h_bounds[1] :
+                    data[ key ].append( function[ key ](i) )
+                    i += self.step
+        
+        #list of functions
+        elif hasattr( function,'__delitem__' ) :
+            data = []
+            for index,f in enumerate( function ) : 
+                data.append( [] )
+                i = h_bounds[0]
+                while i < h_bounds[1] :
+                    data[ index ].append( f(i) )
+                    i += self.step
+        
+        else:
+            data = []
+            i = h_bounds[0]
+            while i < h_bounds[1] :
+                data.append( function(i) )
+                i += self.step
+                
+        return data, h_bounds
+
     def render_horz_labels(self):
         cr = self.context
         labels = self.labels[HORZ]
@@ -750,15 +783,16 @@ class BarPlot(Plot):
 
 class PiePlot(Plot):
     def __init__ (self,
-            surface=None, 
-            data=None, 
-            width=640, 
-            height=480, 
-            background=None,
-            gradient=False,
-            shadow=False):
+            surface = None, 
+            data = None, 
+            width = 640, 
+            height = 480, 
+            background = None,
+            gradient = False,
+            shadow = False,
+            colors = None):
 
-        Plot.__init__(self, surface, data, width, height, background)
+        Plot.__init__( self, surface, data, width, height, background, series_colors = colors )
         self.center = (self.width/2, self.height/2)
         self.total = sum(self.data)
         self.radius = min(self.width/3,self.height/3)
@@ -766,7 +800,7 @@ class PiePlot(Plot):
         self.shadow = shadow
 
     def load_series(self, data, h_labels=None, v_labels=None, series_colors=None):
-        Plot.load_series(self, data)
+        Plot.load_series(self, data, h_labels, v_labels, series_colors)
 
     def draw_piece(self, angle, next_angle):
         self.context.move_to(self.center[0],self.center[1])
@@ -836,22 +870,26 @@ class PiePlot(Plot):
 
 class DonutPlot(PiePlot):
     def __init__ (self,
-            surface=None, 
-            data=None, 
-            width=640, 
-            height=480,
-            background=None,
-            gradient=False,
-            shadow=False,
+            surface = None, 
+            data = None, 
+            width = 640, 
+            height = 480,
+            background = None,
+            gradient = False,
+            shadow = False,
+            colors = None,
             inner_radius=-1):
 
-        Plot.__init__(self, surface, data, width, height, background)
-        self.center = (self.width/2, self.height/2)
-        self.total = sum(self.data)
-        self.radius = min(self.width/3,self.height/3)
+        Plot.__init__( self, surface, data, width, height, background, series_colors = colors )
+        
+        self.center = ( self.width/2, self.height/2 )
+        self.total = sum( self.data )
+        self.radius = min( self.width/3,self.height/3 )
         self.inner_radius = inner_radius*self.radius
+        
         if inner_radius == -1:
             self.inner_radius = self.radius/3
+
         self.gradient = gradient
         self.shadow = shadow
 
@@ -1072,43 +1110,47 @@ def dot_line_plot(name,
                   dots = False,
                   grid = False,
                   series_legend = False,
-                  h_legend = None,
-                  v_legend = None,
+                  h_labels = None,
+                  v_labels = None,
                   h_bounds = None,
                   v_bounds = None,
                   v_title  = None,
                   series_colors = None):
     '''
-        Function to plot graphics using dots and lines.
-        dot_line_plot (name, data, width, height, background = None, border = 0, axis = False, grid = False, h_legend = None, v_legend = None, h_bounds = None, v_bounds = None)
+        - Function to plot graphics using dots and lines.
+        
+        dot_line_plot (name, data, width, height, background = None, border = 0, axis = False, grid = False, h_labels = None, v_labels = None, h_bounds = None, v_bounds = None)
 
-        Parameters
+        - Parameters
 
         name - Name of the desired output file, no need to input the .svg as it will be added at runtim;
         data - The list, list of lists or dictionary holding the data to be plotted;
         width, height - Dimensions of the output image;
-        background - A 3 element tuple representing the rgb color expected for the background. If left None, a gray to white gradient will be generated;
+        background - A 3 element tuple representing the rgb color expected for the background or a new cairo linear gradient. 
+                     If left None, a gray to white gradient will be generated;
         border - Distance in pixels of a square border into which the graphics will be drawn;
         axis - Whether or not the axis are to be drawn;
         dash - Boolean or a list or a dictionary of booleans indicating whether or not the associated series should be drawn in dashed mode;
         dots - Whether or not dots should be drawn on each point;
         grid - Whether or not the gris is to be drawn;
         series_legend - Whether or not the legend is to be drawn;
-        h_legend, v_legend - lists of strings containing the horizontal and vertical legends for the axis;
+        h_labels, v_labels - lists of strings containing the horizontal and vertical labels for the axis;
         h_bounds, v_bounds - tuples containing the lower and upper value bounds for the data to be plotted;
         v_title - Whether or not to plot a title over the y axis.
 
-        Examples of use
+        - Examples of use
 
-        teste_data = [0, 1, 3, 8, 9, 0, 10, 10, 2, 1]
-        CairoPlot.dot_line_plot('teste', teste_data, 400, 300)
+        data = [0, 1, 3, 8, 9, 0, 10, 10, 2, 1]
+        CairoPlot.dot_line_plot('teste', data, 400, 300)
         
-        teste_data_2 = {"john" : [10, 10, 10, 10, 30], "mary" : [0, 0, 3, 5, 15], "philip" : [13, 32, 11, 25, 2]}
-        teste_h_legend = ["jan/2008", "feb/2008", "mar/2008", "apr/2008", "may/2008"]
-        CairoPlot.dot_line_plot('teste2', teste_data_2, 400, 300, axis = True, grid = True, series_legend = True, h_legend = teste_h_legend)
+        data = { "john" : [10, 10, 10, 10, 30], "mary" : [0, 0, 3, 5, 15], "philip" : [13, 32, 11, 25, 2] }
+        h_labels = ["jan/2008", "feb/2008", "mar/2008", "apr/2008", "may/2008" ]
+        CairoPlot.dot_line_plot( 'test', data, 400, 300, axis = True, grid = True, 
+                                  series_legend = True, h_labels = h_labels )
     '''
-    plot = DotLinePlot(name, data, width, height, background, border,
-                       axis, dash, dots, grid, series_legend, h_legend, v_legend, h_bounds, v_bounds, v_title, series_colors)
+    plot = DotLinePlot( name, data, width, height, background, border,
+                        axis, dash, dots, grid, series_legend, h_labels, v_labels,
+                        h_bounds, v_bounds, v_title, series_colors )
     plot.render()
     plot.commit()
 
@@ -1122,96 +1164,130 @@ def function_plot(name,
                   dots = False,
                   discrete = False,
                   grid = False,
-                  h_legend = None,
-                  v_legend = None,
+                  h_labels = None,
+                  v_labels = None,
                   h_bounds = None,
                   v_bounds = None,
+                  series_colors = None,
                   step = 1):
-    
-    plot = FunctionPlot(name, data, width, height, background, border,
-                        axis, discrete, dots, grid, h_legend, v_legend, h_bounds, v_bounds, step)
-    plot.render()
-    plot.commit()
-
-
-def pie_plot(name, data, width, height, background = None, gradient = False):
 
     '''
-        Function to plot pie graphics.
-        pie_plot(name, data, width, height, background = None, gradient = False)
+        - Function to plot functions.
+        
+        function_plot(name, data, width, height, background = None, border = 0, axis = True, grid = False, dots = False, h_labels = None, v_labels = None, h_bounds = None, v_bounds = None, step = 1, discrete = False)
 
-        Parameters
+        - Parameters
         
         name - Name of the desired output file, no need to input the .svg as it will be added at runtim;
         data - The list, list of lists or dictionary holding the data to be plotted;
         width, height - Dimensions of the output image;
-        background - A 3 element tuple representing the rgb color expected for the background. If left None, a gray to white gradient will be generated;
-        gradient - 
+        background - A 3 element tuple representing the rgb color expected for the background or a new cairo linear gradient. 
+                     If left None, a gray to white gradient will be generated;
+        border - Distance in pixels of a square border into which the graphics will be drawn;
+        axis - Whether or not the axis are to be drawn;
+        grid - Whether or not the gris is to be drawn;
+        dots - Whether or not dots should be shown at each point;
+        h_labels, v_labels - lists of strings containing the horizontal and vertical labels for the axis;
+        h_bounds, v_bounds - tuples containing the lower and upper value bounds for the data to be plotted;
+        step - the horizontal distance from one point to the other. The smaller, the smoother the curve will be;
+        discrete - whether or not the function should be plotted in discrete format.
+       
+        - Example of use
 
-        Examples of use
+        data = lambda x : x**2
+        CairoPlot.function_plot('function4', data, 400, 300, grid = True, h_bounds=(-10,10), step = 0.1)
+    '''
+    
+    plot = FunctionPlot( name, data, width, height, background, border,
+                         axis, discrete, dots, grid, h_labels, v_labels,
+                         h_bounds, v_bounds, series_colors, step )
+    plot.render()
+    plot.commit()
+
+
+def pie_plot( name, data, width, height, background = None, gradient = False, shadow = False, colors = None ):
+
+    '''
+        - Function to plot pie graphics.
+        
+        pie_plot(name, data, width, height, background = None, gradient = False, colors = None)
+
+        - Parameters
+        
+        name - Name of the desired output file, no need to input the .svg as it will be added at runtim;
+        data - The list, list of lists or dictionary holding the data to be plotted;
+        width, height - Dimensions of the output image;
+        background - A 3 element tuple representing the rgb color expected for the background or a new cairo linear gradient. 
+                     If left None, a gray to white gradient will be generated;
+        gradient - Whether or not the pie color will be painted with a gradient;
+        shadow - Whether or not there will be a shadow behind the pie;
+        colors - List of slices colors.
+
+        - Example of use
         
         teste_data = {"john" : 123, "mary" : 489, "philip" : 890 , "suzy" : 235}
         CairoPlot.pie_plot("pie_teste", teste_data, 500, 500)
-        
     '''
 
-    plot = PiePlot(name, data, width, height, background, gradient)
+    plot = PiePlot( name, data, width, height, background, gradient, shadow, colors )
     plot.render()
     plot.commit()
 
-def donut_plot(name, data, width, height, background = None, gradient = False, shadow = False, inner_radius = -1):
+def donut_plot(name, data, width, height, background = None, gradient = False, shadow = False, colors = None, inner_radius = -1):
 
     '''
-        Function to plot donut graphics.
+        - Function to plot donut graphics.
+        
         donut_plot(name, data, width, height, background = None, gradient = False, inner_radius = -1)
 
-        Parameters
+        - Parameters
         
         name - Name of the desired output file, no need to input the .svg as it will be added at runtim;
         data - The list, list of lists or dictionary holding the data to be plotted;
         width, height - Dimensions of the output image;
-        background - A 3 element tuple representing the rgb color expected for the background. If left None, a gray to white gradient will be generated;
-        shadow - 
-        gradient - 
-        inner_radius - 
+        background - A 3 element tuple representing the rgb color expected for the background or a new cairo linear gradient. 
+                     If left None, a gray to white gradient will be generated;
+        shadow - Whether or not there will be a shadow behind the donut;
+        gradient - Whether or not the donut color will be painted with a gradient;
+        colors - List of slices colors;
+        inner_radius - The radius of the donut's inner circle.
 
-        Examples of use
+        - Example of use
         
         teste_data = {"john" : 123, "mary" : 489, "philip" : 890 , "suzy" : 235}
         CairoPlot.donut_plot("donut_teste", teste_data, 500, 500)
-        
     '''
 
-    plot = DonutPlot(name, data, width, height, background, gradient, shadow, inner_radius)
+    plot = DonutPlot(name, data, width, height, background, gradient, shadow, colors, inner_radius)
     plot.render()
     plot.commit()
 
-def gantt_chart(name, pieces, width, height, h_legend, v_legend, colors):
+def gantt_chart(name, pieces, width, height, h_labels, v_labels, colors):
 
     '''
-        Function to generate Gantt Diagrams.
-        gantt_chart(name, pieces, width, height, h_legend, v_legend, colors):
+        - Function to generate Gantt Charts.
+        
+        gantt_chart(name, pieces, width, height, h_labels, v_labels, colors):
 
-        Parameters
+        - Parameters
         
         name - Name of the desired output file, no need to input the .svg as it will be added at runtim;
         pieces - A list defining the spaces to be drawn. The user must pass, for each line, the index of its start and the index of its end. If a line must have two or more spaces, they must be passed inside a list;
         width, height - Dimensions of the output image;
-        h_legend - A list of names for each of the vertical lines;
-        v_legend - A list of names for each of the horizontal spaces;
+        h_labels - A list of names for each of the vertical lines;
+        v_labels - A list of names for each of the horizontal spaces;
         colors - List containing the colors expected for each of the horizontal spaces
 
-        Example of use
+        - Example of use
 
         pieces = [ (0.5,5.5) , [(0,4),(6,8)] , (5.5,7) , (7,8)]
-        h_legend = [ 'teste01', 'teste02', 'teste03', 'teste04']
-        v_legend = [ '0001', '0002', '0003', '0004', '0005', '0006', '0007', '0008', '0009', '0010' ]
+        h_labels = [ 'teste01', 'teste02', 'teste03', 'teste04']
+        v_labels = [ '0001', '0002', '0003', '0004', '0005', '0006', '0007', '0008', '0009', '0010' ]
         colors = [ (1.0, 0.0, 0.0), (1.0, 0.7, 0.0), (1.0, 1.0, 0.0), (0.0, 1.0, 0.0) ]
-        CairoPlot.gantt_chart('gantt_teste', pieces, 600, 300, h_legend, v_legend, colors)
-        
+        CairoPlot.gantt_chart('gantt_teste', pieces, 600, 300, h_labels, v_labels, colors)
     '''
 
-    plot = GanttChart(name, pieces, width, height, h_legend, v_legend, colors)
+    plot = GanttChart(name, pieces, width, height, h_labels, v_labels, colors)
     plot.render()
     plot.commit()
 
@@ -1230,6 +1306,33 @@ def bar_plot(name,
              v_bounds = None,
              colors = None):
 
+    '''
+        - Function to generate Bar Plot Charts.
+
+        bar_plot(name, data, width, height, background, border, grid, rounded_corners, three_dimension, 
+                 h_labels, v_labels, h_bounds, v_bounds, colors):
+
+        - Parameters
+        
+        name - Name of the desired output file, no need to input the .svg as it will be added at runtime;
+        data - The list, list of lists or dictionary holding the data to be plotted;
+        width, height - Dimensions of the output image;
+        background - A 3 element tuple representing the rgb color expected for the background or a new cairo linear gradient. 
+                     If left None, a gray to white gradient will be generated;
+        border - Distance in pixels of a square border into which the graphics will be drawn;
+        grid - Whether or not the gris is to be drawn;
+        rounded_corners - Whether or not the bars should have rounded corners;
+        three_dimension - Whether or not the bars should be drawn in pseudo 3D;
+        h_labels, v_labels - lists of strings containing the horizontal and vertical labels for the axis;
+        h_bounds, v_bounds - tuples containing the lower and upper value bounds for the data to be plotted;
+        colors - List containing the colors expected for each of the bars.
+
+        - Example of use
+
+        data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        CairoPlot.bar_plot ('bar2', data, 400, 300, border = 20, grid = True, rounded_corners = False)
+    '''
+    
     plot = BarPlot(name, data, width, height, background, border,
                    grid, rounded_corners, three_dimension, h_labels, v_labels, h_bounds, v_bounds, colors)
     plot.render()

@@ -2,60 +2,109 @@ import CairoPlot
 import cairo
 import math
 
-#data = lambda x : math.sin(0.1*x)*math.cos(x)
-#CairoPlot.function_plot('function1', data, 800, 300, grid = True, dots = True, h_bounds=(0,80), step = 0.9, discrete = True)
-#data = lambda x : x**2
-#CairoPlot.function_plot('function2', data, 400, 300, grid = True, h_bounds=(-10,10), step = 0.1)
-data = lambda x : [1,2,3,4][x]
-h_labels = ["teste", "teste", "teste", "teste"]
-CairoPlot.function_plot('function3', data, 400, 300, discrete = True, dots = True, grid = True, h_legend = h_labels, h_bounds=(0,4), step = 1)
+test_bar_plot = 0
+test_donut_plot = 1
+test_dot_line_plot = 0
+test_function_plot = 0
+test_gantt_chart = 0
+test_pie_plot = 1
 
-#data = {'teste00' : [27], 'teste01' : [10], 'teste02' : [18], 'teste03' : [5], 'teste04' : [1], 'teste05' : [22], 'teste06' : [31], 'teste07' : [8], 'teste08' : [13], 'teste09' : [10]}
-#data = [[0, 3, 11], [8, 9, 21], [13, 10, 9], [2, 30, 8]]
-#colors = [(1,0.2,0), (1,0.7,0), (1,1,0)]
-#data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-#CairoPlot.bar_plot ('bar1', data, 400, 300, border = 20, grid = True, rounded_corners = False, colors = colors)
-#CairoPlot.bar_plot ('bar2', data, 400, 300, border = 20, grid = True, rounded_corners = True, colors = colors)
-#CairoPlot.bar_plot ('bar3D', data, 400, 300, border = 20, grid = True, three_dimension = True, colors = colors)
+if test_bar_plot:
+    #Passing a dictionary
+    data = { 'teste00' : [27], 'teste01' : [10], 'teste02' : [18], 'teste03' : [5], 'teste04' : [1], 'teste05' : [22] }
+    CairoPlot.bar_plot ( 'bar_0_dictionary', data, 400, 300, border = 20, grid = True, rounded_corners = True )
 
-#data = [[1], [2], [3,4], [4], [5], [6], [7], [8], [9], [10]]
-#CairoPlot.bar_plot ('bar2', data, 400, 300, border = 20, grid = True)
-#data = [[3,4], [4,8], [5,3], [9,1]]
-#v_labels = ["line1", "line2", "line3", "line4", "line5", "line6"]
-#h_labels = ["group1", "group2", "group3", "group4"]
-#CairoPlot.bar_plot ('bar', data, 600, 200, border = 20, grid = True)
-#CairoPlot.bar_plot ('bar2', data, 600, 200, border = 20, grid = True, h_labels = h_labels)
-#CairoPlot.bar_plot ('bar3', data, 600, 200, border = 20, grid = True, v_labels = v_labels)
-#CairoPlot.bar_plot ('bar4', data, 600, 200, border = 20, grid = True, h_labels = h_labels, v_labels = v_labels)
-#CairoPlot.bar_plot ('bar4', data, 600, 200, border = 20, grid = True, h_labels = h_labels, v_labels = v_labels, h_bounds = (0,20))
-#teste_data = [0, 1, 3.5, 8.5, 9, 0, 10, 10, 2, 1]
-#CairoPlot.dot_line_plot('teste', teste_data, 400, 300, axis = True, grid = True)
-         
-#teste_data_2 = {"john" : [-5, -2, 0, 1, 3], "mary" : [0, 0, 3, 5, 2], "philip" : [-2, -3, -4, 2, 1]}
-#teste_h_legend = ["jan/2008", "feb/2008", "mar/2008", "apr/2008", "may/2008"]
-#teste_v_legend = ["jan/2008", "feb/2008", "mar/2008", "apr/2008", "may/2008"]
-#CairoPlot.dot_line_plot('teste2', teste_data_2, 400, 300, h_legend = teste_h_legend, v_legend = teste_v_legend, axis = True, grid = True, series_legend = True)
-#teste_data_2 = {"john" : [10, 10, 10, 10, 30], "mary" : [0, 0, 3, 5, 15], "philip" : [13, 32, 11, 25, 2]}
-#teste_h_legend = ["jan/2008", "feb/2008", "mar/2008", "apr/2008", "may/2008"]
-#CairoPlot.dot_line_plot('teste3', teste_data_2, 400, 300, h_legend = teste_h_legend, axis = True, grid = True, series_legend = True)
+    #Using default, rounded corners and 3D visualization
+    data = [ [0, 3, 11], [8, 9, 21], [13, 10, 9], [2, 30, 8] ]
+    colors = [ (1,0.2,0), (1,0.7,0), (1,1,0) ]
+    CairoPlot.bar_plot ( 'bar_1_default', data, 400, 300, border = 20, grid = True, rounded_corners = False, colors = colors )
+    CairoPlot.bar_plot ( 'bar_2_rounded', data, 400, 300, border = 20, grid = True, rounded_corners = True, colors = colors )
+    CairoPlot.bar_plot ( 'bar_3_3D', data, 400, 300, border = 20, grid = True, three_dimension = True, colors = colors )
 
-#background = cairo.LinearGradient(300, 0, 300, 400)
-#background.add_color_stop_rgb(0,0.4,0.4,0.4)
-#background.add_color_stop_rgb(1.0,0.1,0.1,0.1)
+    #Mixing groups and columns
+    data = [ [1], [2], [3,4], [4], [5], [6], [7], [8], [9], [10] ]
+    CairoPlot.bar_plot ( 'bar_4_group', data, 400, 300, border = 20, grid = True )
 
-#teste_data = {"john" : 700, "mary" : 100, "philip" : 100 , "suzy" : 50, "yman" : 50}
-#CairoPlot.pie_plot("pie_teste", teste_data, 600, 400, background = background )
-#CairoPlot.donut_plot("donut_teste1", teste_data, 600, 400, background = background, gradient = True, shadow = True, inner_radius = 0.3)
-#CairoPlot.donut_plot("donut_teste2", teste_data, 600, 400, gradient = True, shadow = True, inner_radius = 0.3)
-#CairoPlot.donut_plot("donut_teste3", teste_data, 600, 400, gradient = False, shadow = False, inner_radius = 0.3)
+    #Using no labels, horizontal and vertical labels
+    data = [[3,4], [4,8], [5,3], [9,1]]
+    v_labels = [ "line1", "line2", "line3", "line4", "line5", "line6" ]
+    h_labels = [ "group1", "group2", "group3", "group4" ]
+    CairoPlot.bar_plot ( 'bar_5_no_labels', data, 600, 200, border = 20, grid = True )
+    CairoPlot.bar_plot ( 'bar_6_h_labels', data, 600, 200, border = 20, grid = True, h_labels = h_labels )
+    CairoPlot.bar_plot ( 'bar_7_v_labels', data, 600, 200, border = 20, grid = True, v_labels = v_labels )
+    CairoPlot.bar_plot ( 'bar_8_hv_labels', data, 600, 200, border = 20, grid = True, h_labels = h_labels, v_labels = v_labels )
 
-#pieces = [ (0.5,5.5) , [(0,4),(6,8)] , (5.5,7) , (7,8)]
-#h_legend = [ 'teste01', 'teste02', 'teste03', 'teste04']
-#v_legend = [ '0001', '0002', '0003', '0004', '0005', '0006', '0007', '0008', '0009', '0010' ]
-#colors = [ (1.0, 0.0, 0.0), (1.0, 0.7, 0.0), (1.0, 1.0, 0.0), (0.0, 1.0, 0.0) ]
-#CairoPlot.gantt_chart('gantt1', pieces, 500, 350, h_legend, v_legend, colors)
-#pieces = [ (0.5,5.5) , [(0,4),(6,8)] , (5.5,7) , (7,9)]
-#h_legend = [ 'teste01', 'teste02', 'teste03', 'teste04']
-#v_legend = [ '0001', '0002', '0003', '0004', '0005', '0006', '0007', '0008', '0009', '0010' ]
-#colors = [ (1.0, 0.0, 0.0), (1.0, 0.7, 0.0), (1.0, 1.0, 0.0), (0.0, 1.0, 0.0) ]
-#CairoPlot.gantt_chart('gantt2', pieces, 500, 350, h_legend, v_legend, colors)
+if test_donut_plot :
+    #Define a new backgrond
+    background = cairo.LinearGradient(300, 0, 300, 400)
+    background.add_color_stop_rgb(0,0.4,0.4,0.4)
+    background.add_color_stop_rgb(1.0,0.1,0.1,0.1)
+    
+    #Default plot, gradient and shadow, different background
+    data = {"john" : 700, "mary" : 100, "philip" : 100 , "suzy" : 50, "yman" : 50}
+    colors = [ (1.0, 0.0, 0.0), (1.0, 0.7, 0.0), (1.0, 1.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.5, 0.5) ]
+    CairoPlot.donut_plot( "donut_1_default", data, 600, 400, inner_radius = 0.3 )
+    CairoPlot.donut_plot( "donut_2_gradient_shadow", data, 600, 400, gradient = True, shadow = True, inner_radius = 0.3 )
+    CairoPlot.donut_plot( "donut_3_background", data, 600, 400, background = background, gradient = True, shadow = True, inner_radius = 0.3 )
+    CairoPlot.donut_plot( "donut_4_colors", data, 600, 400, gradient = True, shadow = True, colors = colors )
+
+if test_dot_line_plot:
+    #Default plot
+    data = [ 0, 1, 3.5, 8.5, 9, 0, 10, 10, 2, 1 ]
+    CairoPlot.dot_line_plot( "dot_line_1_default", data, 400, 300, axis = True, grid = True )
+
+    #Labels
+    data = { "john" : [-5, -2, 0, 1, 3], "mary" : [0, 0, 3, 5, 2], "philip" : [-2, -3, -4, 2, 1] }
+    h_labels = [ "jan/2008", "feb/2008", "mar/2008", "apr/2008", "may/2008" ]
+    v_labels = [ "very low", "low", "medium", "high", "very high" ]
+    CairoPlot.dot_line_plot( "dot_line_2_dictionary_labels", data, 400, 300, h_labels = h_labels, 
+                             v_labels = v_labels, axis = True, grid = True )
+    
+    #Series legend
+    data = { "john" : [10, 10, 10, 10, 30], "mary" : [0, 0, 3, 5, 15], "philip" : [13, 32, 11, 25, 2] }
+    h_labels = [ "jan/2008", "feb/2008", "mar/2008", "apr/2008", "may/2008" ]
+    CairoPlot.dot_line_plot( 'dot_line_3_series_legend', data, 400, 300, h_labels = h_labels, 
+                             axis = True, grid = True, series_legend = True )
+
+if test_function_plot :
+    #Default Plot
+    data = lambda x : x**2
+    CairoPlot.function_plot( 'function_1_default', data, 400, 300, grid = True, h_bounds=(-10,10), step = 0.1 )
+    
+    #Discrete Plot
+    data = lambda x : math.sin(0.1*x)*math.cos(x)
+    CairoPlot.function_plot( 'function_2_discrete', data, 800, 300, grid = True, dots = True, h_bounds=(0,80), step = 0.9, discrete = True )
+
+    #Labels test
+    data = lambda x : [1,2,3,4][x]
+    h_labels = [ "4", "3", "2", "1" ]
+    CairoPlot.function_plot( 'function_3_labels', data, 400, 300, discrete = True, dots = True, grid = True, h_labels = h_labels, h_bounds=(0,4), step = 1 )
+    
+    #Multiple functions
+    data = [ lambda x : 1, lambda y : y**2, lambda z : -z**2 ]
+    colors = [ (1.0, 0.0, 0.0 ), ( 0.0, 1.0, 0.0 ), ( 0.0, 0.0, 1.0 ) ]
+    CairoPlot.function_plot( 'function_4_multi_functions', data, 400, 300, grid = True, series_colors = colors, step = 0.1 )
+
+if test_gantt_chart :
+    #Default Plot
+    pieces = [ (0.5,5.5) , [(0,4),(6,8)] , (5.5,7) , (7,9)]
+    h_labels = [ 'teste01', 'teste02', 'teste03', 'teste04']
+    v_labels = [ '0001', '0002', '0003', '0004', '0005', '0006', '0007', '0008', '0009', '0010' ]
+    colors = [ (1.0, 0.0, 0.0), (1.0, 0.7, 0.0), (1.0, 1.0, 0.0), (0.0, 1.0, 0.0) ]
+    CairoPlot.gantt_chart('gantt_1_default', pieces, 500, 350, h_labels, v_labels, colors)
+
+
+if test_pie_plot :
+    #Define a new backgrond
+    background = cairo.LinearGradient(300, 0, 300, 400)
+    background.add_color_stop_rgb(0.0,0.7,0.0,0.0)
+    background.add_color_stop_rgb(1.0,0.3,0.0,0.0)
+
+    #Plot data
+    data = {"orcs" : 100, "goblins" : 230, "elves" : 50 , "demons" : 43, "humans" : 332}
+    colors = [ (1.0, 0.0, 0.0), (1.0, 0.7, 0.0), (1.0, 1.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.5, 0.5) ]
+    CairoPlot.pie_plot( "pie_1_default", data, 600, 400 )
+    CairoPlot.pie_plot( "pie_2_gradient_shadow", data, 600, 400, gradient = True, shadow = True )
+    CairoPlot.pie_plot( "pie_3_background", data, 600, 400, background = background, gradient = True, shadow = True )
+    CairoPlot.pie_plot( "pie_4_colors", data, 600, 400, gradient = True, shadow = True, colors = colors )
+
