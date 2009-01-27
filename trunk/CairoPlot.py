@@ -32,6 +32,7 @@ import random
 
 HORZ = 0
 VERT = 1
+NORM = 2
 
 def other_direction(direction):
     "explicit is better than implicit"
@@ -199,6 +200,7 @@ class DotLinePlot(Plot):
         self.bounds = {}
         self.bounds[HORZ] = h_bounds
         self.bounds[VERT] = v_bounds
+        self.bounds[NORM] = None
         
         Plot.__init__(self, surface, data, width, height, background, border, h_labels, v_labels, series_colors)
         self.axis = axis
@@ -260,7 +262,6 @@ class DotLinePlot(Plot):
         largest_series_length = max(len(x) for x in self.data)
         self.horizontal_step = float (self.plot_width) / largest_series_length
 
-    
     def render_axis(self):
         cr = self.context
         h_border = self.borders[HORZ]
@@ -332,6 +333,7 @@ class DotLinePlot(Plot):
                 cr.stroke()
             y -=step
 
+        #TODO move titles to a new function
         if self.v_title:
             cr.set_source_rgb(*self.label_color)
             cr.set_font_size(self.font_size)
@@ -432,6 +434,193 @@ class DotLinePlot(Plot):
                 x += self.horizontal_step
                 last = value
 
+
+
+class ScatterPlot( DotLinePlot ):
+    def __init__(self, 
+                 surface=None,
+                 data=None,
+                 width=640,
+                 height=480,
+                 background=None,
+                 border=0, 
+                 axis = False,
+                 dash = False,
+                 discrete = False,
+                 dots = False,
+                 grid = False,
+                 series_legend = False,
+                 h_labels = None,
+                 v_labels = None,
+                 h_bounds = None,
+                 v_bounds = None,
+                 v_title  = None,
+                 series_colors = None,
+                 circle_colors = None,
+                 radius = 5):
+        
+        #FIXME: Define if it's better to store the z_bounds on a new parameter or on the radius parameter as a tuple
+        
+        self.variable_radius = False
+        self.discrete = discrete
+        self.circle_colors = circle_colors
+        
+        DotLinePlot.__init__(self, surface, data, width, height, background, border, 
+                             axis, dash, dots, grid, series_legend, h_labels, v_labels, 
+                             h_bounds, v_bounds, v_title, series_colors)
+        
+        if hasattr(radius, "__delitem__") == 2:
+            self.bounds[NORM] = radius
+        else:
+            self.radius = radius
+        
+    def convert_list_to_tuple(self, data):
+        out_data = []
+        for index, item in enumerate(data[0]):
+            if len(data) == 3:
+                self.variable_radius = False
+                tuple = (item, data[1][index], data[2][index])
+            else:
+                tuple = (item, data[1][index])
+            out_data.append( tuple )
+        return out_data
+    
+    def load_series(self, data, h_labels = None, v_labels = None, series_colors=None):
+        #Dictionary with lists
+        if hasattr(data, "keys") :
+            if hasattr( data.values()[0][0], "__delitem__" ) :
+                for key in data.keys() :
+                    data[key] = self.convert_list_to_tuple(data[key])
+            else:
+                if len(data.values()[0][0]) == 3:
+                    self.variable_radius = True
+        
+        elif hasattr(data[0], "__delitem__") :
+            #List of lists
+            if hasattr(data[0][0], "__delitem__") :
+                for index,value in enumerate(data) :
+                    data[index] = self.convert_list_to_tuple(value)
+            #List
+            elif type(data[0][0]) != type((0,0)):
+                data = self.convert_list_to_tuple(data)            
+            elif len(data[0][0]) == 3:
+                self.variable_radius = True
+                
+        elif len(data[0]) == 3:
+            self.variable_radius = True
+    
+        Plot.load_series(self, data, h_labels, v_labels, series_colors)
+        self.calc_boundaries()
+    
+    def calc_boundaries(self):
+        min_data_value = [0,0,0]
+        max_data_value = [0,0,0]
+        for serie in self.data :
+            for tuple in serie :
+                if tuple[0] > max_data_value[HORZ]: #horizontal
+                    max_data_value[HORZ] = tuple[0]
+                if tuple[0] < min_data_value[HORZ]:
+                    min_data_value[HORZ] = tuple[0]
+                if tuple[1] > max_data_value[VERT]: #vertical
+                    max_data_value[VERT] = tuple[1]
+                if tuple[1] < min_data_value[VERT]:
+                    min_data_value[VERT] = tuple[1]
+                if self.variable_radius and tuple[2] > max_data_value[NORM]: #normal
+                    max_data_value[NORM] = tuple[2]
+                if self.variable_radius and tuple[2] < min_data_value[NORM]:
+                    min_data_value[NORM] = tuple[2]
+                
+        if not self.bounds[HORZ]:
+            self.bounds[HORZ] = (min_data_value[HORZ], max_data_value[HORZ])
+        if not self.bounds[VERT]:
+            self.bounds[VERT] = (min_data_value[VERT], max_data_value[VERT])
+        if not self.bounds[NORM]:
+            self.bounds[NORM] = (min_data_value[NORM], max_data_value[NORM])
+
+    def calc_all_extents(self):
+        self.calc_extents(HORZ)
+        self.calc_extents(VERT)
+
+        self.plot_height = self.height - 2 * self.borders[VERT]
+        self.plot_width = self.width - 2* self.borders[HORZ]
+        
+        series_amplitude = [0,0,0]
+        series_amplitude[HORZ] = self.bounds[HORZ][1] - self.bounds[HORZ][0]
+        series_amplitude[VERT] = self.bounds[VERT][1] - self.bounds[VERT][0]
+        if self.variable_radius :
+            series_amplitude[NORM] = self.bounds[NORM][1] - self.bounds[NORM][0]
+        
+        self.vertical_step = float (self.plot_height) / series_amplitude[VERT]
+        self.horizontal_step = float (self.plot_width) / series_amplitude[HORZ]
+        if self.variable_radius:
+            self.z_step = float (self.bounds[NORM][1]) / series_amplitude[NORM]
+        if self.circle_colors:
+            r = float( self.circle_colors[1][0] - self.circle_colors[0][0] ) / series_amplitude[NORM]
+            g = float( self.circle_colors[1][1] - self.circle_colors[0][1] ) / series_amplitude[NORM]
+            b = float( self.circle_colors[1][2] - self.circle_colors[0][2] ) / series_amplitude[NORM]
+            a = float( self.circle_colors[1][3] - self.circle_colors[0][3] ) / series_amplitude[NORM]
+            self.circle_color_step = ( r, g, b, a )
+    
+    def get_circle_color(self, value):
+        r = self.circle_colors[0][0] + value*self.circle_color_step[0]
+        g = self.circle_colors[0][1] + value*self.circle_color_step[1]
+        b = self.circle_colors[0][2] + value*self.circle_color_step[2]
+        a = self.circle_colors[0][3] + value*self.circle_color_step[3]
+        return (r,g,b,a)
+    
+    def render_plot(self):
+        cr = self.context
+        if self.discrete:
+            cr.rectangle(self.borders[HORZ], self.borders[VERT], self.plot_width, self.plot_height)
+            cr.clip()
+            x0 = self.borders[HORZ] - self.bounds[HORZ][0]*self.horizontal_step
+            y0 = self.borders[VERT] - self.bounds[VERT][0]*self.vertical_step
+            radius = self.radius
+            for number, serie in  enumerate (self.data):
+                cr.set_source_rgb(*self.series_colors[number])
+                for tuple in serie :
+                    if self.variable_radius:
+                        radius = tuple[2]*self.z_step
+                        if self.circle_colors:
+                            cr.set_source_rgba( *self.get_circle_color( tuple[2]) )
+                    x = x0 + self.horizontal_step*tuple[0]
+                    y = y0 + self.vertical_step*tuple[1]
+                    cr.arc(x, self.height - y, radius, 0, 2*math.pi)
+                    cr.fill()
+        else:
+            cr.rectangle(self.borders[HORZ], self.borders[VERT], self.plot_width, self.plot_height)
+            cr.clip()
+            x0 = self.borders[HORZ] - self.bounds[HORZ][0]*self.horizontal_step
+            y0 = self.borders[VERT] - self.bounds[VERT][0]*self.vertical_step
+            radius = self.radius
+            for number, serie in  enumerate (self.data):
+                last_tuple = None
+                cr.set_source_rgb(*self.series_colors[number])
+                for tuple in serie :
+                    x = x0 + self.horizontal_step*tuple[0]
+                    y = y0 + self.vertical_step*tuple[1]
+                    if self.dots:
+                        if self.variable_radius:
+                            radius = tuple[2]*self.z_step
+                        cr.arc(x, self.height - y, radius, 0, 2*math.pi)
+                        cr.fill()
+                    if last_tuple :
+                        old_x = x0 + self.horizontal_step*last_tuple[0]
+                        old_y = y0 + self.vertical_step*last_tuple[1]
+                        cr.move_to( old_x, self.height - old_y )
+                        cr.line_to( x, self.height - y)
+                        cr.set_line_width(self.series_widths[number])
+
+                        # Display line as dash line 
+                        if self.dash and self.dash[number]:
+                            s = self.series_widths[number]
+                            cr.set_dash([s*3, s*3], 0)
+    
+                        cr.stroke()
+                        cr.set_dash([])
+                    last_tuple = tuple
+
+
 class FunctionPlot(DotLinePlot):
     def __init__(self, 
                  surface=None,
@@ -492,6 +681,7 @@ class FunctionPlot(DotLinePlot):
                     data[ index ].append( f(i) )
                     i += self.step
         
+        #function
         else:
             data = []
             i = h_bounds[0]
@@ -645,11 +835,12 @@ class BarPlot(Plot):
             self.render_ground()
 
         self.render_labels()
-
+        
         self.render_plot()
     
     def draw_3d_rectangle_front(self, x0, y0, x1, y1, shift):
         self.context.rectangle(x0-shift, y0+shift, x1-x0, y1-y0)
+
     def draw_3d_rectangle_side(self, x0, y0, x1, y1, shift):
         self.context.move_to(x1-shift,y0+shift)
         self.context.line_to(x1, y0)
@@ -657,6 +848,7 @@ class BarPlot(Plot):
         self.context.line_to(x1-shift, y1+shift)
         self.context.line_to(x1-shift, y0+shift)
         self.context.close_path()
+
     def draw_3d_rectangle_top(self, x0, y0, x1, y1, shift):
         self.context.move_to(x0-shift,y0+shift)
         self.context.line_to(x0, y0)
@@ -1099,6 +1291,53 @@ class GanttChart (Plot) :
                                       self.borders[HORZ] + space[1]*self.horizontal_step, 
                                       self.borders[VERT] + number*self.vertical_step + 3.0*self.vertical_step/4.0, 
                                       self.series_colors[number])
+
+
+
+def scatter_plot(name,
+                 data,
+                 width,
+                 height,
+                 background = None,
+                 border = 0,
+                 axis = False,
+                 dash = False,
+                 discrete = False, 
+                 dots = False,
+                 grid = False,
+                 series_legend = False,
+                 h_labels = None,
+                 v_labels = None,
+                 h_bounds = None,
+                 v_bounds = None,
+                 v_title  = None,
+                 series_colors = None,
+                 circle_colors = None,
+                 radius = 5):
+    
+    '''
+        - Function to plot scatter data.
+        
+        - Parameters
+        
+        data - The values to be ploted might be passed in a two basic:
+               list of points:       [(0,0), (0,1), (0,2)] or [(0,0,1), (0,1,4), (0,2,1)]
+               lists of coordinates: [ [0,0,0] , [0,1,2] ] or [ [0,0,0] , [0,1,2] , [1,4,1] ]
+               Notice that these kinds of that can be grouped in order to form more complex data 
+               using lists of lists or dictionaries;
+        series_colors - Define color values for each of the series
+        circle_colors - Define a lower and an upper bound for the circle colors for variable radius
+                        (3 dimensions) series
+    '''
+    
+    plot = ScatterPlot( name, data, width, height, background, border,
+                        axis, dash, discrete, dots, grid, series_legend, h_labels, v_labels,
+                        h_bounds, v_bounds, v_title, series_colors, circle_colors, radius )
+    plot.render()
+    plot.commit()
+
+
+
 def dot_line_plot(name,
                   data,
                   width,
