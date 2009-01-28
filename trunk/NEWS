@@ -10,4 +10,5 @@ Version 1.1:
     - Added support for Donut Plots
     - Added support for Function Plots
     - Added discrete series option to Function Plots
+    - Added support for Scatter Plots
 
