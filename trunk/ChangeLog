@@ -1,4 +1,19 @@
 
+2009-01-30  Rodrigo Araújo <alf.rodrigo@gmail.com>
+        * CairoPlot.py: Class structure was refactored as it was noted that
+        				the new ScatterPlot was able to render DotLine and 
+        				FunctionPlots;
+        				Following the refactoring, the bounds associated with
+        				a FunctionPlot chart (x_bounds) now define a closed
+        				interval, which means the last value is also taken
+        				taken into account;
+        				Error bars support was added to the ScatterPlot;
+        				All h_* and v_* parameters have been changed to x_*
+        				and y_*.
+        * tests.py: 	FunctionPlot tests were changed to fit the new bounds;
+        				All tests were changed to reflect the h_* and v_* to 
+        				x_* and y_* parameter change.
+
 2009-01-27  Rodrigo Araújo <alf.rodrigo@gmail.com>
         * CairoPlot.py: Bug fixes;
         				Code refactoring for the Plot and DotLinePlot classes;

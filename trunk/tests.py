@@ -1,6 +1,7 @@
 import CairoPlot
 import cairo
 import math
+import random
 
 test_bar_plot = 0
 test_scatter_plot = 1
@@ -28,12 +29,12 @@ if test_bar_plot:
 
     #Using no labels, horizontal and vertical labels
     data = [[3,4], [4,8], [5,3], [9,1]]
-    v_labels = [ "line1", "line2", "line3", "line4", "line5", "line6" ]
-    h_labels = [ "group1", "group2", "group3", "group4" ]
+    y_labels = [ "line1", "line2", "line3", "line4", "line5", "line6" ]
+    x_labels = [ "group1", "group2", "group3", "group4" ]
     CairoPlot.bar_plot ( 'bar_5_no_labels', data, 600, 200, border = 20, grid = True )
-    CairoPlot.bar_plot ( 'bar_6_h_labels', data, 600, 200, border = 20, grid = True, h_labels = h_labels )
-    CairoPlot.bar_plot ( 'bar_7_v_labels', data, 600, 200, border = 20, grid = True, v_labels = v_labels )
-    CairoPlot.bar_plot ( 'bar_8_hv_labels', data, 600, 200, border = 20, grid = True, h_labels = h_labels, v_labels = v_labels )
+    CairoPlot.bar_plot ( 'bar_6_x_labels', data, 600, 200, border = 20, grid = True, x_labels = x_labels )
+    CairoPlot.bar_plot ( 'bar_7_y_labels', data, 600, 200, border = 20, grid = True, y_labels = y_labels )
+    CairoPlot.bar_plot ( 'bar_8_hy_labels', data, 600, 200, border = 20, grid = True, x_labels = x_labels, y_labels = y_labels )
 
 if test_donut_plot :
     #Define a new backgrond
@@ -51,36 +52,36 @@ if test_dot_line_plot:
     #Default plot
     data = [ 0, 1, 3.5, 8.5, 9, 0, 10, 10, 2, 1 ]
     CairoPlot.dot_line_plot( "dot_line_1_default", data, 400, 300, border = 50, axis = True, grid = True,
-                             h_title = "x axis", v_title = "y axis" )
+                             x_title = "x axis", y_title = "y axis" )
 
     #Labels
     data = { "john" : [-5, -2, 0, 1, 3], "mary" : [0, 0, 3, 5, 2], "philip" : [-2, -3, -4, 2, 1] }
-    h_labels = [ "jan/2008", "feb/2008", "mar/2008", "apr/2008", "may/2008" ]
-    v_labels = [ "very low", "low", "medium", "high", "very high" ]
-    CairoPlot.dot_line_plot( "dot_line_2_dictionary_labels", data, 400, 300, h_labels = h_labels, 
-                             v_labels = v_labels, axis = True, grid = True,
-                             h_title = "x axis", v_title = "y axis", series_legend=True )
+    x_labels = [ "jan/2008", "feb/2008", "mar/2008", "apr/2008", "may/2008" ]
+    y_labels = [ "very low", "low", "medium", "high", "very high" ]
+    CairoPlot.dot_line_plot( "dot_line_2_dictionary_labels", data, 400, 300, x_labels = x_labels, 
+                             y_labels = y_labels, axis = True, grid = True,
+                             x_title = "x axis", y_title = "y axis", series_legend=True )
     
     #Series legend
     data = { "john" : [10, 10, 10, 10, 30], "mary" : [0, 0, 3, 5, 15], "philip" : [13, 32, 11, 25, 2] }
-    h_labels = [ "jan/2008", "feb/2008", "mar/2008", "apr/2008", "may/2008" ]
-    CairoPlot.dot_line_plot( 'dot_line_3_series_legend', data, 400, 300, h_labels = h_labels, 
+    x_labels = [ "jan/2008", "feb/2008", "mar/2008", "apr/2008", "may/2008" ]
+    CairoPlot.dot_line_plot( 'dot_line_3_series_legend', data, 400, 300, x_labels = x_labels, 
                              axis = True, grid = True, series_legend = True )
 
 if test_function_plot :
     #Default Plot
     data = lambda x : x**2
-    CairoPlot.function_plot( 'function_1_default', data, 400, 300, grid = True, h_bounds=(-10,10), step = 0.1 )
+    CairoPlot.function_plot( 'function_1_default', data, 400, 300, grid = True, x_bounds=(-10,10), step = 0.1 )
     
     #Discrete Plot
     data = lambda x : math.sin(0.1*x)*math.cos(x)
-    CairoPlot.function_plot( 'function_2_discrete', data, 800, 300, discrete = True, dots = True, grid = True, h_bounds=(0,80), 
-                             h_title = "t (s)", v_title = "sin(0.1*x)*cos(x)", step = 0.9)
+    CairoPlot.function_plot( 'function_2_discrete', data, 800, 300, discrete = True, dots = True, grid = True, x_bounds=(0,80), 
+                             x_title = "t (s)", y_title = "sin(0.1*x)*cos(x)")
 
     #Labels test
-    data = lambda x : [1,2,3,4][x]
-    h_labels = [ "4", "3", "2", "1" ]
-    CairoPlot.function_plot( 'function_3_labels', data, 400, 300, discrete = True, dots = True, grid = True, h_labels = h_labels, h_bounds=(0,4), step = 1 )
+    data = lambda x : [1,2,3,4,5][x]
+    x_labels = [ "4", "3", "2", "1", "0" ]
+    CairoPlot.function_plot( 'function_3_labels', data, 400, 300, discrete = True, dots = True, grid = True, x_labels = x_labels, x_bounds=(0,4), step = 1 )
     
     #Multiple functions
     data = [ lambda x : 1, lambda y : y**2, lambda z : -z**2 ]
@@ -90,10 +91,10 @@ if test_function_plot :
 if test_gantt_chart :
     #Default Plot
     pieces = [ (0.5,5.5) , [(0,4),(6,8)] , (5.5,7) , (7,9)]
-    h_labels = [ 'teste01', 'teste02', 'teste03', 'teste04']
-    v_labels = [ '0001', '0002', '0003', '0004', '0005', '0006', '0007', '0008', '0009', '0010' ]
+    x_labels = [ 'teste01', 'teste02', 'teste03', 'teste04']
+    y_labels = [ '0001', '0002', '0003', '0004', '0005', '0006', '0007', '0008', '0009', '0010' ]
     colors = [ (1.0, 0.0, 0.0), (1.0, 0.7, 0.0), (1.0, 1.0, 0.0), (0.0, 1.0, 0.0) ]
-    CairoPlot.gantt_chart('gantt_1_default', pieces, 500, 350, h_labels, v_labels, colors)
+    CairoPlot.gantt_chart('gantt_1_default', pieces, 500, 350, x_labels, y_labels, colors)
 
 
 if test_pie_plot :
@@ -109,34 +110,9 @@ if test_pie_plot :
     CairoPlot.pie_plot( "pie_3_background", data, 600, 400, background = background, gradient = True, shadow = True )
 
 if test_scatter_plot:
-    #TODO: Correct comments
     #Default data
     data = [ (-2,10), (0,0), (0,15), (1,5), (2,0), (3,-10), (3,5) ]
-    CairoPlot.scatter_plot ( 'scatter_1_default', data, 500, 500, border = 20, axis = True, grid = True )
-    
-    #Two Default data
-    data = [ [ (0,0), (-2,10), (0,15), (1,5), (2,0), (3,-10), (3,5) ],
-             [ (0,2), (-2,12), (0,17), (1,7), (2,2), (3,-8),  (3,7) ]  ]
-    CairoPlot.scatter_plot ( 'scatter_2_default', data, 500, 500, border = 20, axis = True, grid = True )
-    
-    #Dictionary of Default data
-    data = { 'data1' : [ (0,0), (0,10), (0,15), (1,5), (2,0), (3,-10), (3,5) ],
-             'data2' : [ (2,2), (2,12), (2,17), (3,7), (4,2), (5,-8),  (5,7) ]  }
-    CairoPlot.scatter_plot ( 'scatter_3_default', data, 500, 500, border = 20, axis = True, grid = True )
-    
-    #Two lists data
-    data = [ [0, 0, 0, 1, 2, 3, 3], [0, 10, 15, 5, 0, -10, 5] ]
-    CairoPlot.scatter_plot ( 'scatter_4_two_lists', data, 500, 500, border = 20, axis = True, discrete = True, dots = True, grid = True )
-    
-    #Two groups of two lists data
-    data = [ [ [0, 0, 0, 1, 2, 3, 3], [0, 10, 15, 5, 0, -10, 5] ],
-             [ [2, 2, 2, 3, 4, 5, 5], [2, 12, 17, 7, 2, -8, 7] ]  ]
-    CairoPlot.scatter_plot ( 'scatter_5_two_lists', data, 500, 500, border = 20, axis = True, discrete = True, dots = True, grid = True )
-    
-    #Dictionary
-    data = { 'data1' : [ [0, 0, 0, 1, 2, 3, 3], [0, 10, 15, 5, 0, -10, 5] ],
-             'data2' : [ [2, 2, 2, 3, 4, 5, 5], [2, 12, 17, 7, 2, -8, 7] ]  }
-    CairoPlot.scatter_plot ( 'scatter_6_two_lists', data, 500, 500, border = 20, axis = True, discrete = True, dots = True, grid = True )
+    CairoPlot.scatter_plot ( 'cross_1_default', data = data, width = 500, height = 500, border = 20, axis = True, grid = True )
     
     data = [(-1, -16, 12), (-12, 17, 11), (-4, 6, 5), (4, -20, 12), (13, -3, 21), (7, 14, 20), (-11, -2, 18), (19, 7, 18), (-10, -19, 15),
             (-17, -2, 6), (-9, 4, 10), (14, 11, 16), (13, -11, 18), (20, 20, 16), (7, -8, 15), (-16, 17, 16), (16, 9, 9), (-3, -13, 25),
@@ -144,6 +120,21 @@ if test_scatter_plot:
             (17, -15, 25), (-2, -8, 5), (5, 20, 20), (18, 20, 23), (-20, -16, 17), (-19, -2, 9), (-11, 19, 18), (17, 16, 12), (-5, -20, 15),
             (-20, -13, 10), (-3, 5, 20), (-1, 13, 17), (-11, -9, 11)]
     colors = [ (0,0,0,0.25), (1,0,0,0.75) ]
-    CairoPlot.scatter_plot ( 'scatter_7_real_data', data, 500, 500, border = 20, axis = True, discrete = True, dots = True, 
-                             grid = True, h_title = "x axis", v_title = "y axis", circle_colors = colors, radius = 2 )
+    CairoPlot.scatter_plot ( 'cross_2_variable_radius', data = data, width = 500, height = 500, border = 20, 
+                             axis = True, discrete = True, dots = 2, grid = True, 
+                             x_title = "x axis", y_title = "y axis", circle_colors = colors )
+    
+    #Scatter x DotLine
+    t = [x*0.1 for x in range(0,40)]
+    f = [math.exp(x) for x in t]
+    g = [10*math.cos(x) for x in t]
+    erx = [0.1*random.random() for x in t]
+    ery = [5*random.random() for x in t]
+    data = {"exp" : [t,f], "cos" : [t,g]}
+    series_colors = [ (1,0,0), (0,0,0) ]
+    CairoPlot.scatter_plot ( 'cross_r_exponential', data = data, errorx = [erx,erx], errory = [ery,ery], width = 800, height = 600, border = 20, 
+                             axis = True, discrete = False, dots = 5, grid = True, 
+                             x_title = "t", y_title = "f(t) g(t)", series_legend=True, series_colors = series_colors )
+    
+    
     
