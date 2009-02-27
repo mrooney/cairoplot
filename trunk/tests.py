@@ -1,15 +1,16 @@
-import CairoPlot
 import cairo
 import math
 import random
+import cairoplot
 
 test_bar_plot = 0
-test_scatter_plot = 1
+test_scatter_plot = 0
 test_donut_plot = 0
 test_dot_line_plot = 1
-test_function_plot = 1
+test_function_plot = 0
 test_gantt_chart = 0
 test_pie_plot = 0
+test_themes = 0
 
 if test_bar_plot:
     #Passing a dictionary
@@ -19,7 +20,7 @@ if test_bar_plot:
     #Using default, rounded corners and 3D visualization
     data = [ [0, 3, 11], [8, 9, 21], [13, 10, 9], [2, 30, 8] ]
     colors = [ (1,0.2,0), (1,0.7,0), (1,1,0) ]
-    CairoPlot.bar_plot ( 'bar_1_default', data, 400, 300, border = 20, grid = True, rounded_corners = False, colors = colors )
+    CairoPlot.bar_plot ( 'bar_1_default', data, 400, 300, border = 20, grid = True, rounded_corners = False, colors = "yellow_orange_red" )
     CairoPlot.bar_plot ( 'bar_2_rounded', data, 400, 300, border = 20, grid = True, rounded_corners = True, colors = colors )
     CairoPlot.bar_plot ( 'bar_3_3D', data, 400, 300, border = 20, grid = True, three_dimension = True, colors = colors )
 
@@ -128,13 +129,32 @@ if test_scatter_plot:
     t = [x*0.1 for x in range(0,40)]
     f = [math.exp(x) for x in t]
     g = [10*math.cos(x) for x in t]
+    h = [10*math.sin(x) for x in t]
     erx = [0.1*random.random() for x in t]
     ery = [5*random.random() for x in t]
-    data = {"exp" : [t,f], "cos" : [t,g]}
-    series_colors = [ (1,0,0), (0,0,0) ]
+    data = {"exp" : [t,f], "cos" : [t,g], "sin" : [t,h]}
+    series_colors = [ (1,0,0), (0,0,0), (0,0,1) ]
     CairoPlot.scatter_plot ( 'cross_r_exponential', data = data, errorx = [erx,erx], errory = [ery,ery], width = 800, height = 600, border = 20, 
                              axis = True, discrete = False, dots = 5, grid = True, 
                              x_title = "t", y_title = "f(t) g(t)", series_legend=True, series_colors = series_colors )
     
     
+if test_themes :    
+    data = [1,2,3,4,5,6,7,8,9,10,11,12,13,14]
+    CairoPlot.bar_plot ( 'bar_color_themes', data, 400, 300, border = 20, grid = True, colors="rainbow" )
     
+    data = [ lambda x : 1, lambda y : y**2, lambda z : -z**2 ]
+    CairoPlot.function_plot( 'function_color_themes', data, 400, 300, grid = True, series_colors = ["red", "orange", "yellow"], step = 0.1 )
+    
+    #Scatter x DotLine
+    t = [x*0.1 for x in range(0,40)]
+    f = [math.exp(x) for x in t]
+    g = [10*math.cos(x) for x in t]
+    h = [10*math.sin(x) for x in t]
+    erx = [0.1*random.random() for x in t]
+    ery = [5*random.random() for x in t]
+    data = {"exp" : [t,f], "cos" : [t,g], "sin" : [t,h]}
+    series_colors = [ (1,0,0), (0,0,0) ]
+    CairoPlot.scatter_plot ( 'scatter_color_themes', data = data, errorx = [erx,erx], errory = [ery,ery], width = 800, height = 600, border = 20, 
+                             axis = True, discrete = False, dots = 5, grid = True, 
+                             x_title = "t", y_title = "f(t) g(t)", series_legend=True, series_colors = ["red", "blue", "orange"])

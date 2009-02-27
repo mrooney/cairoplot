@@ -24,6 +24,8 @@
 
 #Contributor: João S. O. Bueno
 
+#TODO: review the whole code
+
 __version__ = 1.1
 
 import cairo
@@ -34,6 +36,52 @@ HORZ = 0
 VERT = 1
 NORM = 2
 
+COLORS = {"red"    : (1.0,0.0,0.0,1.0), "lime"    : (0.0,1.0,0.0,1.0), "blue"   : (0.0,0.0,1.0,1.0),
+          "maroon" : (0.5,0.0,0.0,1.0), "green"   : (0.0,0.5,0.0,1.0), "navy"   : (0.0,0.0,0.5,1.0),
+          "yellow" : (1.0,1.0,0.0,1.0), "magenta" : (1.0,0.0,1.0,1.0), "cyan"   : (0.0,1.0,1.0,1.0),
+          "orange" : (1.0,0.5,0.0,1.0), "white"   : (1.0,1.0,1.0,1.0), "black"  : (0.0,0.0,0.0,1.0)}
+
+THEMES = {"black_red"         : [ (0.0,0.0,0.0,1.0), (1.0,0.0,0.0,1.0) ],
+          "red_green_blue"    : [ (1.0,0.0,0.0,1.0), (0.0,1.0,0.0,1.0), (0.0,0.0,1.0,1.0) ],
+          "red_orange_yellow" : [ (1.0,0.2,0.0,1.0), (1.0,0.7,0.0,1.0), (1.0,1.0,0.0,1.0) ],
+          "yellow_orange_red" : [ (1.0,1.0,0.0,1.0), (1.0,0.7,0.0,1.0), (1.0,0.2,0.0,1.0) ],
+          "rainbow"           : [ (1.0,0.0,0.0,1.0), (1.0,0.5,0.0,1.0), (1.0,1.0,0.0,1.0), (0.0,1.0,0.0,1.0), (0.0,0.0,1.0,1.0), (0.3, 0.0, 0.5,1.0), (0.5, 0.0, 1.0, 1.0) ] }
+
+def colors_from_theme( theme, series_length ):
+    colors = []
+    if theme not in THEMES.keys() :
+        raise Exception, "Theme not defined" 
+    color_steps = THEMES[ theme ]
+    steps_length = len(color_steps)
+    if series_length <= steps_length:
+        colors = [color for color in color_steps[0:steps_length] ]
+    else:
+        iterations      = [ (series_length - steps_length)/(steps_length - 1) for i in color_steps[:-1] ]
+        over_iterations = (series_length - steps_length) % (steps_length - 1)
+        for i in range( steps_length - 1 ):
+            if over_iterations <= 0:
+                break
+            iterations[i] += 1
+            over_iterations -= 1
+        for index,color in enumerate( color_steps[:-1] ):
+            colors.append(color)
+            if iterations[index] == 0:
+                continue
+            next_color = color_steps[index+1]
+            color_step = ( (next_color[0] - color[0])/(iterations[index] + 1),
+                           (next_color[1] - color[1])/(iterations[index] + 1),
+                           (next_color[2] - color[2])/(iterations[index] + 1),
+                           (next_color[3] - color[3])/(iterations[index] + 1) )
+            for i in range( iterations[index] ):
+                colors.append( (color[0] + color_step[0]*(i+1), 
+                                color[1] + color_step[1]*(i+1), 
+                                color[2] + color_step[2]*(i+1),
+                                color[3] + color_step[3]*(i+1)) )
+        colors.append(color_steps[-1])
+        
+    return colors
+        
+
 def other_direction(direction):
     "explicit is better than implicit"
     if direction == HORZ:
@@ -42,7 +90,6 @@ def other_direction(direction):
         return HORZ
 
 #Class definition
-
 class Plot(object):
     def __init__(self, 
                  surface=None,
@@ -54,6 +101,9 @@ class Plot(object):
                  x_labels = None,
                  y_labels = None,
                  series_colors = None):
+        
+        random.seed(2)
+    
         self.create_surface(surface, width, height)
         self.width = width
         self.height = height
@@ -138,12 +188,32 @@ class Plot(object):
         else:
             self.data = [data]
             self.series_labels = None
-        #FIXME: select some pre-sets and allow these to be parametrized:
-        random.seed(2)
-        self.series_colors = series_colors
-        if not self.series_colors:
-            self.series_colors = [[random.random() for i in range(3)]  for series in self.data]
+
         self.series_widths = [1.0 for series in self.data]
+        self.process_colors( series_colors )
+        
+    def process_colors( self, series_colors, length = None ):
+        #series_colors might be None, a theme, a string of colors names or a string of color tuples
+        if length is None :
+            length = len( self.data )
+        #Randomize colors
+        if not series_colors:
+            self.series_colors = [ [random.random() for i in range(3)] + [1.0]  for series in range( length ) ]
+        else:
+            #Theme pattern
+            if not hasattr( series_colors, "__iter__" ):
+                theme = series_colors
+                self.series_colors = colors_from_theme( theme.lower(), length )
+            #List
+            else:
+                self.series_colors = series_colors
+                for index, color in enumerate( self.series_colors ):
+                    #list of color names
+                    if not hasattr(color, "__iter__"):
+                        self.series_colors[index] = COLORS[color.lower()]
+                    #list of rgb colors instead of rgba
+                    elif len( color ) == 3 :
+                        self.series_colors[index] += tuple( [1.0] )
 
     def get_width(self):
         return self.surface.get_width()
@@ -153,8 +223,8 @@ class Plot(object):
     def set_background(self, background):
         if background is None:
             self.background = cairo.LinearGradient(self.width / 2, 0, self.width / 2, self.height)
-            self.background.add_color_stop_rgb(0,1.0,1.0,1.0)
-            self.background.add_color_stop_rgb(1.0,0.9,0.9,0.9)
+            self.background.add_color_stop_rgba(0,1.0,1.0,1.0,1.0)
+            self.background.add_color_stop_rgba(1.0,0.9,0.9,0.9,1.0)
         else:
             if type(background) in (cairo.LinearGradient, tuple):
                 self.background = background
@@ -165,12 +235,12 @@ class Plot(object):
         if isinstance (self.background, cairo.LinearGradient):
             self.context.set_source(self.background)
         else:
-            self.context.set_source_rgb(*self.background)
+            self.context.set_source_rgba(*self.background)
         self.context.rectangle(0,0, self.width, self.height)
         self.context.fill()
         
     def render_bounding_box(self):
-        self.context.set_source_rgb(*self.line_color)
+        self.context.set_source_rgba(*self.line_color)
         self.context.set_line_width(self.line_width)
         self.context.rectangle(self.border, self.border,
                                self.width - 2 * self.border,
@@ -396,14 +466,14 @@ class ScatterPlot( Plot ):
             self.render_grid()
         self.render_labels()        
         self.render_plot()
-        if self.series_legend and self.series_labels:
-            self.render_legend()
         if self.errors:
             self.render_errors()
+        if self.series_legend and self.series_labels:
+            self.render_legend()
             
     def render_axis(self):
         cr = self.context
-        cr.set_source_rgb(*self.line_color)
+        cr.set_source_rgba(*self.line_color)
         cr.move_to(self.borders[HORZ], self.height - self.borders[VERT])
         cr.line_to(self.borders[HORZ], self.borders[VERT])
         cr.stroke()
@@ -412,7 +482,7 @@ class ScatterPlot( Plot ):
         cr.line_to(self.width - self.borders[HORZ], self.height - self.borders[VERT])
         cr.stroke()
 
-        cr.set_source_rgb(*self.label_color)
+        cr.set_source_rgba(*self.label_color)
         self.context.set_font_size( 1.2 * self.font_size )
         if self.titles[HORZ]:
             title_width,title_height = cr.text_extents(self.titles[HORZ])[2:4]
@@ -435,13 +505,13 @@ class ScatterPlot( Plot ):
         y = self.plot_top - horizontal_step
         
         for label in self.labels[HORZ][:-1]:
-            cr.set_source_rgb(*self.grid_color)
+            cr.set_source_rgba(*self.grid_color)
             cr.move_to(x, self.height - self.borders[VERT])
             cr.line_to(x, self.borders[VERT])
             cr.stroke()
             x += vertical_step
         for label in self.labels[VERT][:-1]:
-            cr.set_source_rgb(*self.grid_color)
+            cr.set_source_rgba(*self.grid_color)
             cr.move_to(self.borders[HORZ], y)
             cr.line_to(self.width - self.borders[HORZ], y)
             cr.stroke()
@@ -457,7 +527,7 @@ class ScatterPlot( Plot ):
         step = float( self.plot_width ) / ( len( self.labels[HORZ] ) - 1 )
         x = self.borders[HORZ]
         for item in self.labels[HORZ]:
-            cr.set_source_rgb(*self.label_color)
+            cr.set_source_rgba(*self.label_color)
             width = cr.text_extents(item)[2]
             cr.move_to(x, self.height - self.borders[VERT] + 5)
             cr.rotate(self.x_label_angle)
@@ -470,7 +540,7 @@ class ScatterPlot( Plot ):
         step = ( self.plot_height ) / ( len( self.labels[VERT] ) - 1 )
         y = self.plot_top
         for item in self.labels[VERT]:
-            cr.set_source_rgb(*self.label_color)
+            cr.set_source_rgba(*self.label_color)
             width = cr.text_extents(item)[2]
             cr.move_to(self.borders[HORZ] - width - 5,y)
             cr.show_text(item)
@@ -492,12 +562,12 @@ class ScatterPlot( Plot ):
         #Add a bounding box
         bounding_box_width = max_width + color_box_width + 15
         bounding_box_height = (len(self.series_labels)+0.5) * max_height
-        cr.set_source_rgb(1,1,1)
+        cr.set_source_rgba(1,1,1)
         cr.rectangle(self.width - self.borders[HORZ] - bounding_box_width, self.borders[VERT],
                             bounding_box_width, bounding_box_height)
         cr.fill()
         
-        cr.set_source_rgb(*self.line_color)
+        cr.set_source_rgba(*self.line_color)
         cr.set_line_width(self.line_width)
         cr.rectangle(self.width - self.borders[HORZ] - bounding_box_width, self.borders[VERT],
                             bounding_box_width, bounding_box_height)
@@ -506,20 +576,20 @@ class ScatterPlot( Plot ):
         i = 0
         for key in self.series_labels:
             #Create color box
-            cr.set_source_rgb(*self.series_colors[i])
+            cr.set_source_rgba(*self.series_colors[i])
             cr.rectangle(self.width - self.borders[HORZ] - max_width - color_box_width - 10, 
                                 self.borders[VERT] + color_box_height + (i*max_height) ,
                                 color_box_width, color_box_height)
             cr.fill()
             
-            cr.set_source_rgb(0, 0, 0)
+            cr.set_source_rgba(0, 0, 0)
             cr.rectangle(self.width - self.borders[HORZ] - max_width - color_box_width - 10, 
                                 self.borders[VERT] + color_box_height + (i*max_height),
                                 color_box_width, color_box_height)
             cr.stroke()
             
             # Create labels
-            cr.set_source_rgb(0, 0, 0)
+            cr.set_source_rgba(0, 0, 0)
             cr.move_to(self.width - self.borders[HORZ] - max_width - 5, self.borders[VERT] + ((i+1)*max_height))
             cr.show_text(key)
             i += 1
@@ -532,7 +602,7 @@ class ScatterPlot( Plot ):
         x0 = self.borders[HORZ] - self.bounds[HORZ][0]*self.horizontal_step
         y0 = self.borders[VERT] - self.bounds[VERT][0]*self.vertical_step
         for index, serie in enumerate(self.data):
-            cr.set_source_rgb(*self.series_colors[index])
+            cr.set_source_rgba(*self.series_colors[index])
             for number, tuple in enumerate(serie):
                 x = x0 + self.horizontal_step * tuple[0]
                 y = self.height - y0 - self.vertical_step * tuple[1]
@@ -575,7 +645,7 @@ class ScatterPlot( Plot ):
             y0 = self.borders[VERT] - self.bounds[VERT][0]*self.vertical_step
             radius = self.dots
             for number, serie in  enumerate (self.data):
-                cr.set_source_rgb(*self.series_colors[number])
+                cr.set_source_rgba(*self.series_colors[number])
                 for tuple in serie :
                     if self.variable_radius:
                         radius = tuple[2]*self.z_step
@@ -593,7 +663,7 @@ class ScatterPlot( Plot ):
             radius = self.dots
             for number, serie in  enumerate (self.data):
                 last_tuple = None
-                cr.set_source_rgb(*self.series_colors[number])
+                cr.set_source_rgba(*self.series_colors[number])
                 for tuple in serie :
                     x = x0 + self.horizontal_step*tuple[0]
                     y = y0 + self.vertical_step*tuple[1]
@@ -753,7 +823,7 @@ class FunctionPlot(ScatterPlot):
             last = None
             cr = self.context
             for number, series in  enumerate (self.data):
-                cr.set_source_rgb(*self.series_colors[number])
+                cr.set_source_rgba(*self.series_colors[number])
                 x0 = self.borders[HORZ] - self.bounds[HORZ][0]*self.horizontal_step
                 y0 = self.borders[VERT] - self.bounds[VERT][0]*self.vertical_step
                 for tuple in series:
@@ -799,13 +869,19 @@ class BarPlot(Plot):
 
     def load_series(self, data, x_labels = None, y_labels = None, series_colors = None):
         Plot.load_series(self, data, x_labels, y_labels, series_colors)
-        if not series_colors:
-            if hasattr(self.data[0], '__getitem__'):
-                self.series_colors = [[random.random() for i in range(3)]  for item in range(max(len(x) for x in self.data))]
-            else:
-                self.series_colors = [[random.random() for i in range(3)]  for series in self.data]
         self.calc_boundaries()
-
+        
+    def process_colors(self, series_colors):
+        #Data for a BarPlot might be a List or a List of Lists.
+        #On the first case, colors must generated for all bars,
+        #On the second, colors must be generated for each of the inner lists.
+        if hasattr(self.data[0], '__getitem__'):
+            length = max(len(series) for series in self.data)
+        else:
+            length = len( self.data )
+            
+        Plot.process_colors( self, series_colors, length )
+        
     def calc_boundaries(self):
         
         if not self.bounds[HORZ]:
@@ -873,7 +949,7 @@ class BarPlot(Plot):
         self.context.close_path()
 
     def render_grid(self):
-        self.context.set_source_rgb(0.8, 0.8, 0.8)
+        self.context.set_source_rgba(0.8, 0.8, 0.8)
         if self.labels[VERT]:
             lines = len(self.labels[VERT])
         else:
@@ -920,7 +996,7 @@ class BarPlot(Plot):
         x = self.borders[HORZ] + step/2
 
         for item in self.labels[HORZ]:
-            self.context.set_source_rgb(*self.label_color)
+            self.context.set_source_rgba(*self.label_color)
             width = self.context.text_extents(item)[2]
             self.context.move_to(x - width/2, self.height - self.borders[VERT] + self.max_value[HORZ] + 3)
             self.context.show_text(item)
@@ -932,7 +1008,7 @@ class BarPlot(Plot):
 
         self.labels[VERT].reverse()
         for item in self.labels[VERT]:
-            self.context.set_source_rgb(*self.label_color)
+            self.context.set_source_rgba(*self.label_color)
             width, height = self.context.text_extents(item)[2:4]
             self.context.move_to(self.borders[HORZ] - width - 5, y + height/2)
             self.context.show_text(item)
@@ -970,9 +1046,10 @@ class BarPlot(Plot):
             x0 = self.borders[HORZ] + i*horizontal_step + 0.2*inner_step
             for number,key in enumerate(series):
                 linear = cairo.LinearGradient( x0, key*vertical_step/2, x0 + inner_step, key*vertical_step/2 )
-                r,g,b = self.series_colors[number]
-                linear.add_color_stop_rgb(0.0, 3.5*r/5.0, 3.5*g/5.0, 3.5*b/5.0)
-                linear.add_color_stop_rgb(1.0, r, g, b)
+                #FIXME: test if set_source_rgba accepts 3 parameters
+                color = self.series_colors[number]
+                linear.add_color_stop_rgba(0.0, 3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0,1.0)
+                linear.add_color_stop_rgba(1.0, *color)
                 self.context.set_source(linear)
                 
                 if self.rounded_corners and key != 0:
@@ -1041,7 +1118,7 @@ class PiePlot(Plot):
         cr = self.context
         for number,key in enumerate(self.series_labels):
             next_angle = angle + 2.0*math.pi*self.data[number]/self.total
-            cr.set_source_rgb(*self.series_colors[number])
+            cr.set_source_rgba(*self.series_colors[number])
             w = cr.text_extents(key)[2]
             if (angle + next_angle)/2 < math.pi/2 or (angle + next_angle)/2 > 3*math.pi/2:
                 cr.move_to(x0 + (self.radius+10)*math.cos((angle+next_angle)/2), y0 + (self.radius+10)*math.sin((angle+next_angle)/2) )
@@ -1059,20 +1136,19 @@ class PiePlot(Plot):
             next_angle = angle + 2.0*math.pi*series/self.total
             if self.gradient:        
                 gradient_color = cairo.RadialGradient(self.center[0], self.center[1], 0, self.center[0], self.center[1], self.radius)
-                gradient_color.add_color_stop_rgb(0.3, self.series_colors[number][0], 
-                                                       self.series_colors[number][1], 
-                                                       self.series_colors[number][2])
-                gradient_color.add_color_stop_rgb(1, self.series_colors[number][0]*0.7,
-                                                     self.series_colors[number][1]*0.7,
-                                                     self.series_colors[number][2]*0.7)
+                gradient_color.add_color_stop_rgba(0.3, *self.series_colors[number])
+                gradient_color.add_color_stop_rgba(1, self.series_colors[number][0]*0.7,
+                                                      self.series_colors[number][1]*0.7,
+                                                      self.series_colors[number][2]*0.7,
+                                                      self.series_colors[number][3])
                 cr.set_source(gradient_color)
             else:
-                cr.set_source_rgb(*self.series_colors[number])
+                cr.set_source_rgba(*self.series_colors[number])
 
             self.draw_piece(angle, next_angle)
             cr.fill()
 
-            cr.set_source_rgb(1.0, 1.0, 1.0)
+            cr.set_source_rgba(1.0, 1.0, 1.0)
             self.draw_piece(angle, next_angle)
             cr.stroke()
 
@@ -1177,21 +1253,21 @@ class GanttChart (Plot) :
 
     def render_background(self):
         cr = self.context
-        cr.set_source_rgb(255,255,255)
+        cr.set_source_rgba(255,255,255)
         cr.rectangle(0,0,self.width, self.height)
         cr.fill()
         for number,item in enumerate(self.data):
             linear = cairo.LinearGradient(self.width/2, self.borders[VERT] + number*self.vertical_step, 
                                           self.width/2, self.borders[VERT] + (number+1)*self.vertical_step)
-            linear.add_color_stop_rgb(0,1.0,1.0,1.0)
-            linear.add_color_stop_rgb(1.0,0.9,0.9,0.9)
+            linear.add_color_stop_rgba(0,1.0,1.0,1.0,1.0)
+            linear.add_color_stop_rgba(1.0,0.9,0.9,0.9,1.0)
             cr.set_source(linear)
             cr.rectangle(0,self.borders[VERT] + number*self.vertical_step,self.width,self.vertical_step)
             cr.fill()
 
     def render_grid(self):
         cr = self.context
-        cr.set_source_rgb(0.7, 0.7, 0.7)
+        cr.set_source_rgba(0.7, 0.7, 0.7)
         cr.set_dash((1,0,0,0,0,0,1))
         cr.set_line_width(0.5)
         for number,label in enumerate(self.labels[VERT]):
@@ -1213,7 +1289,7 @@ class GanttChart (Plot) :
             labels = [str(i) for i in range(1, self.bounds[HORZ][1] + 1)  ]
         for number,label in enumerate(labels):
             if label != None:
-                cr.set_source_rgb(0.5, 0.5, 0.5)
+                cr.set_source_rgba(0.5, 0.5, 0.5)
                 w,h = cr.text_extents(label)[2], cr.text_extents(label)[3]
                 cr.move_to(40,self.borders[VERT] + number*self.vertical_step + self.vertical_step/2 + h/2)
                 cr.show_text(label)
@@ -1253,8 +1329,8 @@ class GanttChart (Plot) :
         cr = self.context
         middle = (x0+x1)/2
         linear = cairo.LinearGradient(middle,y0,middle,y1)
-        linear.add_color_stop_rgb(0,3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0)
-        linear.add_color_stop_rgb(1,color[0],color[1],color[2])
+        linear.add_color_stop_rgba(0,3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0,1.0)
+        linear.add_color_stop_rgba(1,*color)
         cr.set_source(linear)
 
         cr.arc(x0+5, y0+5, 5, 0, 2*math.pi)
