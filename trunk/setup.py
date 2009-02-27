@@ -9,7 +9,7 @@ setup(
     license='GNU LGPL 2.1',
     long_description='''
         Using Python and PyCairo to develop a module to plot graphics in an
-        easy and intuitive way, creating beautiful results to presentations.
+        easy and intuitive way, creating beautiful results for presentations.
         ''',
     name='Cairoplot',
     py_modules=['CairoPlot'],
