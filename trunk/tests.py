@@ -1,9 +1,11 @@
 import cairo
 import math
 import random
+
 import cairoplot
 
-test_bar_plot = 1
+test_vertical_bar_plot = 1
+test_horizontal_bar_plot = 1
 test_scatter_plot = 1
 test_donut_plot = 1
 test_dot_line_plot = 1
@@ -12,30 +14,66 @@ test_gantt_chart = 1
 test_pie_plot = 1
 test_themes = 1
 
-if test_bar_plot:
+if test_vertical_bar_plot:
     #Passing a dictionary
     data = { 'teste00' : [27], 'teste01' : [10], 'teste02' : [18], 'teste03' : [5], 'teste04' : [1], 'teste05' : [22] }
-    cairoplot.bar_plot ( 'bar_0_dictionary', data, 400, 300, border = 20, grid = True, rounded_corners = True )
+    cairoplot.vertical_bar_plot ( 'vbar_0_dictionary', data, 400, 300, border = 20, grid = True, rounded_corners = True )
 
     #Using default, rounded corners and 3D visualization
     data = [ [0, 3, 11], [8, 9, 21], [13, 10, 9], [2, 30, 8] ]
     colors = [ (1,0.2,0), (1,0.7,0), (1,1,0) ]
-    cairoplot.bar_plot ( 'bar_1_default', data, 400, 300, border = 20, grid = True, rounded_corners = False, colors = "yellow_orange_red" )
-    cairoplot.bar_plot ( 'bar_2_rounded', data, 400, 300, border = 20, grid = True, rounded_corners = True, colors = colors )
-    cairoplot.bar_plot ( 'bar_3_3D', data, 400, 300, border = 20, grid = True, three_dimension = True, colors = colors )
+    cairoplot.vertical_bar_plot ( 'vbar_1_default', data, 400, 300, border = 20, grid = True, rounded_corners = False, colors = "yellow_orange_red" )
+    cairoplot.vertical_bar_plot ( 'vbar_2_rounded', data, 400, 300, border = 20, grid = True, rounded_corners = True, colors = colors )
+    cairoplot.vertical_bar_plot ( 'vbar_3_3D', data, 400, 300, border = 20, grid = True, three_dimension = True, colors = colors )
 
     #Mixing groups and columns
     data = [ [1], [2], [3,4], [4], [5], [6], [7], [8], [9], [10] ]
-    cairoplot.bar_plot ( 'bar_4_group', data, 400, 300, border = 20, grid = True )
+    cairoplot.vertical_bar_plot ( 'vbar_4_group', data, 400, 300, border = 20, grid = True )
 
     #Using no labels, horizontal and vertical labels
     data = [[3,4], [4,8], [5,3], [9,1]]
     y_labels = [ "line1", "line2", "line3", "line4", "line5", "line6" ]
     x_labels = [ "group1", "group2", "group3", "group4" ]
-    cairoplot.bar_plot ( 'bar_5_no_labels', data, 600, 200, border = 20, grid = True )
-    cairoplot.bar_plot ( 'bar_6_x_labels', data, 600, 200, border = 20, grid = True, x_labels = x_labels )
-    cairoplot.bar_plot ( 'bar_7_y_labels', data, 600, 200, border = 20, grid = True, y_labels = y_labels )
-    cairoplot.bar_plot ( 'bar_8_hy_labels', data, 600, 200, border = 20, grid = True, x_labels = x_labels, y_labels = y_labels )
+    cairoplot.vertical_bar_plot ( 'vbar_5_no_labels', data, 600, 200, border = 20, grid = True )
+    cairoplot.vertical_bar_plot ( 'vbar_6_x_labels', data, 600, 200, border = 20, grid = True, x_labels = x_labels )
+    cairoplot.vertical_bar_plot ( 'vbar_7_y_labels', data, 600, 200, border = 20, grid = True, y_labels = y_labels )
+    cairoplot.vertical_bar_plot ( 'vbar_8_hy_labels', data, 600, 200, border = 20, grid = True, x_labels = x_labels, y_labels = y_labels )
+    
+    #Large data set
+    data = [[10*random.random()] for x in range(50)]
+    x_labels = ["large label name oh my god it's big" for x in data]
+    cairoplot.vertical_bar_plot ( 'vbar_9_large', data, 1000, 800, border = 20, grid = True, rounded_corners = True, x_labels = x_labels )
+
+if test_horizontal_bar_plot:
+    #Passing a dictionary
+    data = { 'teste00' : [27], 'teste01' : [10], 'teste02' : [18], 'teste03' : [5], 'teste04' : [1], 'teste05' : [22] }
+    cairoplot.horizontal_bar_plot ( 'hbar_0_dictionary', data, 400, 300, border = 20, grid = True, rounded_corners = True )
+
+    #Using default, rounded corners and 3D visualization
+    data = [ [0, 3, 11], [8, 9, 21], [13, 10, 9], [2, 30, 8] ]
+    colors = [ (1,0.2,0), (1,0.7,0), (1,1,0) ]
+    cairoplot.horizontal_bar_plot ( 'hbar_1_default', data, 400, 300, border = 20, grid = True, rounded_corners = False, colors = "yellow_orange_red" )
+    cairoplot.horizontal_bar_plot ( 'hbar_2_rounded', data, 400, 300, border = 20, grid = True, rounded_corners = True, colors = colors )
+
+    #Mixing groups and columns
+    data = [ [1], [2], [3,4], [4], [5], [6], [7], [8], [9], [10] ]
+    cairoplot.horizontal_bar_plot ( 'hbar_4_group', data, 400, 300, border = 20, grid = True )
+
+    #Using no labels, horizontal and vertical labels
+    data = [[3,4], [4,8], [5,3], [9,1]]
+    x_labels = [ "line1", "line2", "line3", "line4", "line5", "line6" ]
+    y_labels = [ "group1", "group2", "group3", "group4" ]
+    cairoplot.horizontal_bar_plot ( 'hbar_5_no_labels', data, 600, 200, border = 20, grid = True )
+    cairoplot.horizontal_bar_plot ( 'hbar_6_x_labels', data, 600, 200, border = 20, grid = True, x_labels = x_labels )
+    cairoplot.horizontal_bar_plot ( 'hbar_7_y_labels', data, 600, 200, border = 20, grid = True, y_labels = y_labels )
+    cairoplot.horizontal_bar_plot ( 'hbar_8_hy_labels', data, 600, 200, border = 20, grid = True, x_labels = x_labels, y_labels = y_labels )
+    
+    #Large data set
+    data = [[10*random.random()] for x in range(50)]
+    x_labels = ["large label name oh my god it's big" for x in data]
+    cairoplot.horizontal_bar_plot ( 'hbar_9_large', data, 1000, 800, border = 20, grid = True, rounded_corners = True, x_labels = x_labels )
+
+
 
 if test_donut_plot :
     #Define a new backgrond
@@ -89,6 +127,13 @@ if test_function_plot :
     colors = [ (1.0, 0.0, 0.0 ), ( 0.0, 1.0, 0.0 ), ( 0.0, 0.0, 1.0 ) ]
     cairoplot.function_plot( 'function_4_multi_functions', data, 400, 300, grid = True, series_colors = colors, step = 0.1 )
 
+    #Gaussian
+    a = 1
+    b = 0
+    c = 1.5
+    gaussian = lambda x : a*math.exp(-(x-b)*(x-b)/(2*c*c))
+    cairoplot.function_plot( 'function_5_gaussian', data, 400, 300, grid = True, x_bounds = (-10,10), step = 0.1 )
+
 if test_gantt_chart :
     #Default Plot
     pieces = [ (0.5,5.5) , [(0,4),(6,8)] , (5.5,7) , (7,9)]
@@ -113,7 +158,17 @@ if test_pie_plot :
 if test_scatter_plot:
     #Default data
     data = [ (-2,10), (0,0), (0,15), (1,5), (2,0), (3,-10), (3,5) ]
-    cairoplot.scatter_plot ( 'cross_1_default', data = data, width = 500, height = 500, border = 20, axis = True, grid = True )
+    cairoplot.scatter_plot ( 'scatter_1_default', data = data, width = 500, height = 500, border = 20, axis = True, grid = True )
+    
+    #lists of coordinates x,y
+    data = [[1,2,3,4,5],[1,1,1,1,1]]
+    cairoplot.scatter_plot ( 'scatter_2_lists', data = data, width = 500, height = 500, border = 20, axis = True, grid = True )
+    
+    #lists of coordinates x,y,z
+    data = [[0.5,1,2,3,4,5],[0.5,1,1,1,1,1],[10,6,10,20,10,6]]
+    colors = [ (0,0,0,0.25), (1,0,0,0.75) ]
+    cairoplot.scatter_plot ( 'scatter_3_lists', data = data, width = 500, height = 500, border = 20, axis = True, discrete = True,
+                             grid = True, circle_colors = colors )    
     
     data = [(-1, -16, 12), (-12, 17, 11), (-4, 6, 5), (4, -20, 12), (13, -3, 21), (7, 14, 20), (-11, -2, 18), (19, 7, 18), (-10, -19, 15),
             (-17, -2, 6), (-9, 4, 10), (14, 11, 16), (13, -11, 18), (20, 20, 16), (7, -8, 15), (-16, 17, 16), (16, 9, 9), (-3, -13, 25),
@@ -121,11 +176,11 @@ if test_scatter_plot:
             (17, -15, 25), (-2, -8, 5), (5, 20, 20), (18, 20, 23), (-20, -16, 17), (-19, -2, 9), (-11, 19, 18), (17, 16, 12), (-5, -20, 15),
             (-20, -13, 10), (-3, 5, 20), (-1, 13, 17), (-11, -9, 11)]
     colors = [ (0,0,0,0.25), (1,0,0,0.75) ]
-    cairoplot.scatter_plot ( 'cross_2_variable_radius', data = data, width = 500, height = 500, border = 20, 
+    cairoplot.scatter_plot ( 'scatter_2_variable_radius', data = data, width = 500, height = 500, border = 20, 
                              axis = True, discrete = True, dots = 2, grid = True, 
                              x_title = "x axis", y_title = "y axis", circle_colors = colors )
     
-    #Scatter x DotLine
+    #Scatter x DotLine error bars
     t = [x*0.1 for x in range(0,40)]
     f = [math.exp(x) for x in t]
     g = [10*math.cos(x) for x in t]
@@ -141,7 +196,7 @@ if test_scatter_plot:
     
 if test_themes :    
     data = [1,2,3,4,5,6,7,8,9,10,11,12,13,14]
-    cairoplot.bar_plot ( 'bar_color_themes', data, 400, 300, border = 20, grid = True, colors="rainbow" )
+    cairoplot.vertical_bar_plot ( 'bar_color_themes', data, 400, 300, border = 20, grid = True, colors="rainbow" )
     
     data = [ lambda x : 1, lambda y : y**2, lambda z : -z**2 ]
     cairoplot.function_plot( 'function_color_themes', data, 400, 300, grid = True, series_colors = ["red", "orange", "yellow"], step = 0.1 )

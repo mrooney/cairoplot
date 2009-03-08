@@ -25,6 +25,7 @@
 #Contributor: João S. O. Bueno
 
 #TODO: review the whole code
+#stopped at render method on Scatter Plot
 
 __version__ = 1.1
 
@@ -41,44 +42,43 @@ COLORS = {"red"    : (1.0,0.0,0.0,1.0), "lime"    : (0.0,1.0,0.0,1.0), "blue"   
           "yellow" : (1.0,1.0,0.0,1.0), "magenta" : (1.0,0.0,1.0,1.0), "cyan"   : (0.0,1.0,1.0,1.0),
           "orange" : (1.0,0.5,0.0,1.0), "white"   : (1.0,1.0,1.0,1.0), "black"  : (0.0,0.0,0.0,1.0)}
 
-THEMES = {"black_red"         : [ (0.0,0.0,0.0,1.0), (1.0,0.0,0.0,1.0) ],
-          "red_green_blue"    : [ (1.0,0.0,0.0,1.0), (0.0,1.0,0.0,1.0), (0.0,0.0,1.0,1.0) ],
-          "red_orange_yellow" : [ (1.0,0.2,0.0,1.0), (1.0,0.7,0.0,1.0), (1.0,1.0,0.0,1.0) ],
-          "yellow_orange_red" : [ (1.0,1.0,0.0,1.0), (1.0,0.7,0.0,1.0), (1.0,0.2,0.0,1.0) ],
-          "rainbow"           : [ (1.0,0.0,0.0,1.0), (1.0,0.5,0.0,1.0), (1.0,1.0,0.0,1.0), (0.0,1.0,0.0,1.0), (0.0,0.0,1.0,1.0), (0.3, 0.0, 0.5,1.0), (0.5, 0.0, 1.0, 1.0) ] }
+THEMES = {"black_red"         : [(0.0,0.0,0.0,1.0), (1.0,0.0,0.0,1.0)],
+          "red_green_blue"    : [(1.0,0.0,0.0,1.0), (0.0,1.0,0.0,1.0), (0.0,0.0,1.0,1.0)],
+          "red_orange_yellow" : [(1.0,0.2,0.0,1.0), (1.0,0.7,0.0,1.0), (1.0,1.0,0.0,1.0)],
+          "yellow_orange_red" : [(1.0,1.0,0.0,1.0), (1.0,0.7,0.0,1.0), (1.0,0.2,0.0,1.0)],
+          "rainbow"           : [(1.0,0.0,0.0,1.0), (1.0,0.5,0.0,1.0), (1.0,1.0,0.0,1.0), (0.0,1.0,0.0,1.0), (0.0,0.0,1.0,1.0), (0.3, 0.0, 0.5,1.0), (0.5, 0.0, 1.0, 1.0)]}
 
 def colors_from_theme( theme, series_length ):
     colors = []
     if theme not in THEMES.keys() :
         raise Exception, "Theme not defined" 
-    color_steps = THEMES[ theme ]
-    steps_length = len(color_steps)
-    if series_length <= steps_length:
-        colors = [color for color in color_steps[0:steps_length] ]
+    color_steps = THEMES[theme]
+    n_colors = len(color_steps)
+    if series_length <= n_colors:
+        colors = [color for color in color_steps[0:n_colors]]
     else:
-        iterations      = [ (series_length - steps_length)/(steps_length - 1) for i in color_steps[:-1] ]
-        over_iterations = (series_length - steps_length) % (steps_length - 1)
-        for i in range( steps_length - 1 ):
+        iterations = [(series_length - n_colors)/(n_colors - 1) for i in color_steps[:-1]]
+        over_iterations = (series_length - n_colors) % (n_colors - 1)
+        for i in range(n_colors - 1):
             if over_iterations <= 0:
                 break
             iterations[i] += 1
             over_iterations -= 1
-        for index,color in enumerate( color_steps[:-1] ):
+        for index,color in enumerate(color_steps[:-1]):
             colors.append(color)
             if iterations[index] == 0:
                 continue
             next_color = color_steps[index+1]
-            color_step = ( (next_color[0] - color[0])/(iterations[index] + 1),
-                           (next_color[1] - color[1])/(iterations[index] + 1),
-                           (next_color[2] - color[2])/(iterations[index] + 1),
-                           (next_color[3] - color[3])/(iterations[index] + 1) )
+            color_step = ((next_color[0] - color[0])/(iterations[index] + 1),
+                          (next_color[1] - color[1])/(iterations[index] + 1),
+                          (next_color[2] - color[2])/(iterations[index] + 1),
+                          (next_color[3] - color[3])/(iterations[index] + 1))
             for i in range( iterations[index] ):
-                colors.append( (color[0] + color_step[0]*(i+1), 
-                                color[1] + color_step[1]*(i+1), 
-                                color[2] + color_step[2]*(i+1),
-                                color[3] + color_step[3]*(i+1)) )
+                colors.append((color[0] + color_step[0]*(i+1), 
+                               color[1] + color_step[1]*(i+1), 
+                               color[2] + color_step[2]*(i+1),
+                               color[3] + color_step[3]*(i+1)))
         colors.append(color_steps[-1])
-        
     return colors
         
 
@@ -90,6 +90,7 @@ def other_direction(direction):
         return HORZ
 
 #Class definition
+
 class Plot(object):
     def __init__(self, 
                  surface=None,
@@ -101,32 +102,23 @@ class Plot(object):
                  x_labels = None,
                  y_labels = None,
                  series_colors = None):
-        
         random.seed(2)
-    
         self.create_surface(surface, width, height)
         self.width = width
         self.height = height
         self.context = cairo.Context(self.surface)
-        
         self.labels={}
         self.labels[HORZ] = x_labels
         self.labels[VERT] = y_labels
-        
         self.load_series(data, x_labels, y_labels, series_colors)
-
-
         self.font_size = 10
-        
         self.set_background (background)
         self.border = border
         self.borders = {}
-        
         self.line_color = (0.5, 0.5, 0.5)
         self.line_width = 0.5
         self.label_color = (0.0, 0.0, 0.0)
         self.grid_color = (0.8, 0.8, 0.8)
-        
     
     def create_surface(self, surface, width=None, height=None):
         self.filename = None
@@ -147,9 +139,6 @@ class Plot(object):
             if sufix != "svg":
                 self.filename += ".svg"
             self.surface = cairo.SVGSurface(self.filename, width, height)
-    
-    #def __del__(self):
-    #    self.commit()
 
     def commit(self):
         try:
@@ -167,28 +156,25 @@ class Plot(object):
         
         #data can be a list, a list of lists or a dictionary with 
         #each item as a labeled data series.
-        #we should (for teh time being) create a list of lists
+        #we should (for the time being) create a list of lists
         #and set labels for teh series rom  teh values provided.
         
         self.series_labels = []
         self.data = []
-        #if we have labeled series:
+        #dictionary
         if hasattr(data, "keys"):
-            #dictionary:
             self.series_labels = data.keys()
             for key in self.series_labels:
                 self.data.append(data[key])
-        #if we have a series of series:
-        #changed the following line to adapt the Plot class to work
-        #with GanttChart class
-        #elif hasattr(data[0], "__getitem__"):
+        #lists of lists:
         elif max([hasattr(item,'__delitem__') for item in data]) :
             self.data = data
             self.series_labels = range(len(data))
+        #list
         else:
             self.data = [data]
             self.series_labels = None
-
+        #TODO: allow user passed series_widths
         self.series_widths = [1.0 for series in self.data]
         self.process_colors( series_colors )
         
@@ -196,8 +182,9 @@ class Plot(object):
         #series_colors might be None, a theme, a string of colors names or a string of color tuples
         if length is None :
             length = len( self.data )
-        #Randomize colors
+        #no colors passed
         if not series_colors:
+            #Randomize colors
             self.series_colors = [ [random.random() for i in range(3)] + [1.0]  for series in range( length ) ]
         else:
             #Theme pattern
@@ -217,6 +204,7 @@ class Plot(object):
 
     def get_width(self):
         return self.surface.get_width()
+    
     def get_height(self):
         return self.surface.get_height()
 
@@ -232,7 +220,7 @@ class Plot(object):
                 raise TypeError ("Background should be either cairo.LinearGradient or a 3-tuple, not %s" % type(background))
         
     def render_background(self):
-        if isinstance (self.background, cairo.LinearGradient):
+        if isinstance(self.background, cairo.LinearGradient):
             self.context.set_source(self.background)
         else:
             self.context.set_source_rgba(*self.background)
@@ -245,7 +233,6 @@ class Plot(object):
         self.context.rectangle(self.border, self.border,
                                self.width - 2 * self.border,
                                self.height - 2 * self.border)
-        #CORRECTION: Added the next line so it will draw the outline of the bounding box
         self.context.stroke()
 
     def render(self):
@@ -281,24 +268,20 @@ class ScatterPlot( Plot ):
         self.bounds[HORZ] = x_bounds
         self.bounds[VERT] = y_bounds
         self.bounds[NORM] = z_bounds
-        
         self.titles = {}
         self.titles[HORZ] = x_title
         self.titles[VERT] = y_title
-        
         self.max_value = {}
-        
         self.axis = axis
         self.discrete = discrete
         self.dots = dots
         self.grid = grid
         self.series_legend = series_legend
         self.variable_radius = False
-        
-        Plot.__init__(self, surface, data, width, height, background, border, x_labels, y_labels, series_colors)
-        
         self.x_label_angle = math.pi / 2.5
         self.circle_colors = circle_colors
+        
+        Plot.__init__(self, surface, data, width, height, background, border, x_labels, y_labels, series_colors)
         
         self.dash = None
         if dash:
@@ -312,14 +295,11 @@ class ScatterPlot( Plot ):
         self.load_errors(errorx, errory)
     
     def convert_list_to_tuple(self, data):
-        out_data = []
-        for index, item in enumerate(data[0]):
-            if len(data) == 3:
-                self.variable_radius = False
-                tuple = (item, data[1][index], data[2][index])
-            else:
-                tuple = (item, data[1][index])
-            out_data.append( tuple )
+        #Data must be converted from lists of coordinates to a single
+        # list of tuples
+        out_data = zip(*data)
+        if len(data) == 3:
+            self.variable_radius = True
         return out_data
     
     def load_series(self, data, x_labels = None, y_labels = None, series_colors=None):
@@ -328,24 +308,23 @@ class ScatterPlot( Plot ):
             if hasattr( data.values()[0][0], "__delitem__" ) :
                 for key in data.keys() :
                     data[key] = self.convert_list_to_tuple(data[key])
-            else:
-                if len(data.values()[0][0]) == 3:
+            elif len(data.values()[0][0]) == 3:
                     self.variable_radius = True
-        
+        #List
         elif hasattr(data[0], "__delitem__") :
-            #List of lists
+            #List of lists 
             if hasattr(data[0][0], "__delitem__") :
                 for index,value in enumerate(data) :
                     data[index] = self.convert_list_to_tuple(value)
             #List
             elif type(data[0][0]) != type((0,0)):
-                data = self.convert_list_to_tuple(data)            
+                data = self.convert_list_to_tuple(data)
+            #Three dimensional data
             elif len(data[0][0]) == 3:
                 self.variable_radius = True
-                
+        #List with three dimensional tuples
         elif len(data[0]) == 3:
             self.variable_radius = True
-    
         Plot.load_series(self, data, x_labels, y_labels, series_colors)
         self.calc_boundaries()
         self.calc_labels()
@@ -354,32 +333,35 @@ class ScatterPlot( Plot ):
         self.errors = None
         if errorx == None and errory == None:
             return
-        
         self.errors = {}
         self.errors[HORZ] = None
         self.errors[VERT] = None
+        #asimetric errors
         if errorx and hasattr(errorx[0], "__delitem__"):
             self.errors[HORZ] = errorx
+        #simetric errors
         elif errorx:
             self.errors[HORZ] = [errorx]
+        #asimetric errors
         if errory and hasattr(errory[0], "__delitem__"):
             self.errors[VERT] = errory
+        #simetric errors
         elif errory:
             self.errors[VERT] = [errory]
     
     def calc_labels(self):
         if not self.labels[HORZ]:
             amplitude = self.bounds[HORZ][1] - self.bounds[HORZ][0]
-            if amplitude % 10: #if vertical labels need floating points
+            if amplitude % 10: #if horizontal labels need floating points
                 self.labels[HORZ] = ["%.2lf" % (float(self.bounds[HORZ][0] + (amplitude * i / 10.0))) for i in range(11) ]
             else:
-                self.labels[HORZ] = [str(int(self.bounds[HORZ][0] + (amplitude * i / 10.0))) for i in range(11) ]
+                self.labels[HORZ] = ["%d" % (int(self.bounds[HORZ][0] + (amplitude * i / 10.0))) for i in range(11) ]
         if not self.labels[VERT]:
             amplitude = self.bounds[VERT][1] - self.bounds[VERT][0]
             if amplitude % 10: #if vertical labels need floating points
                 self.labels[VERT] = ["%.2lf" % (float(self.bounds[VERT][0] + (amplitude * i / 10.0))) for i in range(11) ]
             else:
-                self.labels[VERT] = [str(int(self.bounds[VERT][0] + (amplitude * i / 10.0))) for i in range(11) ]
+                self.labels[VERT] = ["%d" % (int(self.bounds[VERT][0] + (amplitude * i / 10.0))) for i in range(11) ]
 
     def calc_extents(self, direction):
         self.context.set_font_size(self.font_size * 0.8)
@@ -387,22 +369,16 @@ class ScatterPlot( Plot ):
         self.borders[other_direction(direction)] = self.max_value[direction] + self.border + 20
 
     def calc_boundaries(self):
+        #HORZ = 0, VERT = 1, NORM = 2
         min_data_value = [0,0,0]
         max_data_value = [0,0,0]
         for serie in self.data :
             for tuple in serie :
-                if tuple[0] > max_data_value[HORZ]: #horizontal
-                    max_data_value[HORZ] = tuple[0]
-                if tuple[0] < min_data_value[HORZ]:
-                    min_data_value[HORZ] = tuple[0]
-                if tuple[1] > max_data_value[VERT]: #vertical
-                    max_data_value[VERT] = tuple[1]
-                if tuple[1] < min_data_value[VERT]:
-                    min_data_value[VERT] = tuple[1]
-                if self.variable_radius and tuple[2] > max_data_value[NORM]: #normal
-                    max_data_value[NORM] = tuple[2]
-                if self.variable_radius and tuple[2] < min_data_value[NORM]:
-                    min_data_value[NORM] = tuple[2]
+                for index, item in enumerate(tuple) :
+                    if item > max_data_value[index]:
+                        max_data_value[index] = item
+                    elif item < min_data_value[index]:
+                        min_data_value[index] = item
                 
         if not self.bounds[HORZ]:
             self.bounds[HORZ] = (min_data_value[HORZ], max_data_value[HORZ])
@@ -419,13 +395,11 @@ class ScatterPlot( Plot ):
         self.plot_width = self.width - 2* self.borders[HORZ]
         
         self.plot_top = self.height - self.borders[VERT]
-        
-        series_amplitude = [0,0,0]
-        series_amplitude[HORZ] = self.bounds[HORZ][1] - self.bounds[HORZ][0]
-        series_amplitude[VERT] = self.bounds[VERT][1] - self.bounds[VERT][0]
-        if self.variable_radius :
-            series_amplitude[NORM] = self.bounds[NORM][1] - self.bounds[NORM][0]
-        
+                
+    def calc_steps(self):
+        #Calculates all the x, y, z and color steps
+        series_amplitude = [self.bounds[index][1] - self.bounds[index][0] for index in range(3)]
+
         if series_amplitude[HORZ]:
             self.horizontal_step = float (self.plot_width) / series_amplitude[HORZ]
         else:
@@ -440,31 +414,24 @@ class ScatterPlot( Plot ):
             if self.variable_radius:
                 self.z_step = float (self.bounds[NORM][1]) / series_amplitude[NORM]
             if self.circle_colors:
-                r = float( self.circle_colors[1][0] - self.circle_colors[0][0] ) / series_amplitude[NORM]
-                g = float( self.circle_colors[1][1] - self.circle_colors[0][1] ) / series_amplitude[NORM]
-                b = float( self.circle_colors[1][2] - self.circle_colors[0][2] ) / series_amplitude[NORM]
-                a = float( self.circle_colors[1][3] - self.circle_colors[0][3] ) / series_amplitude[NORM]
-                self.circle_color_step = ( r, g, b, a )
+                self.circle_color_step = tuple([float(self.circle_colors[1][i]-self.circle_colors[0][i])/series_amplitude[NORM] for i in range(4)])
         else:
             self.z_step = 0.00
             self.circle_color_step = ( 0.0, 0.0, 0.0, 0.0 )
     
     def get_circle_color(self, value):
-        r = self.circle_colors[0][0] + value*self.circle_color_step[0]
-        g = self.circle_colors[0][1] + value*self.circle_color_step[1]
-        b = self.circle_colors[0][2] + value*self.circle_color_step[2]
-        a = self.circle_colors[0][3] + value*self.circle_color_step[3]
-        return (r,g,b,a)
+        return tuple( [self.circle_colors[0][i] + value*self.circle_color_step[i] for i in range(4)] )
     
     def render(self):
         self.calc_all_extents()
+        self.calc_steps()
         self.render_background()
         self.render_bounding_box()
         if self.axis:
             self.render_axis()
         if self.grid:
             self.render_grid()
-        self.render_labels()        
+        self.render_labels()
         self.render_plot()
         if self.errors:
             self.render_errors()
@@ -472,6 +439,7 @@ class ScatterPlot( Plot ):
             self.render_legend()
             
     def render_axis(self):
+        #Draws both the axis lines and their titles
         cr = self.context
         cr.set_source_rgba(*self.line_color)
         cr.move_to(self.borders[HORZ], self.height - self.borders[VERT])
@@ -549,17 +517,17 @@ class ScatterPlot( Plot ):
     def render_legend(self):
         cr = self.context
         cr.set_font_size(self.font_size)
-        cr.set_line_width(self.line_width*1)
+        cr.set_line_width(self.line_width)
 
         widest_word = max(self.series_labels, key = lambda item: self.context.text_extents(item)[2])
-        max_width = self.context.text_extents(widest_word)[2]
         tallest_word = max(self.series_labels, key = lambda item: self.context.text_extents(item)[3])
+        max_width = self.context.text_extents(widest_word)[2]
         max_height = self.context.text_extents(tallest_word)[3] * 1.1
         
         color_box_height = max_height / 2
         color_box_width = color_box_height * 2
         
-        #Add a bounding box
+        #Draw a bounding box
         bounding_box_width = max_width + color_box_width + 15
         bounding_box_height = (len(self.series_labels)+0.5) * max_height
         cr.set_source_rgba(1,1,1)
@@ -573,26 +541,24 @@ class ScatterPlot( Plot ):
                             bounding_box_width, bounding_box_height)
         cr.stroke()
 
-        i = 0
-        for key in self.series_labels:
-            #Create color box
-            cr.set_source_rgba(*self.series_colors[i])
+        for idx,key in enumerate(self.series_labels):
+            #Draw color box
+            cr.set_source_rgba(*self.series_colors[idx])
             cr.rectangle(self.width - self.borders[HORZ] - max_width - color_box_width - 10, 
-                                self.borders[VERT] + color_box_height + (i*max_height) ,
+                                self.borders[VERT] + color_box_height + (idx*max_height) ,
                                 color_box_width, color_box_height)
             cr.fill()
             
             cr.set_source_rgba(0, 0, 0)
             cr.rectangle(self.width - self.borders[HORZ] - max_width - color_box_width - 10, 
-                                self.borders[VERT] + color_box_height + (i*max_height),
+                                self.borders[VERT] + color_box_height + (idx*max_height),
                                 color_box_width, color_box_height)
             cr.stroke()
             
-            # Create labels
+            #Draw series labels
             cr.set_source_rgba(0, 0, 0)
-            cr.move_to(self.width - self.borders[HORZ] - max_width - 5, self.borders[VERT] + ((i+1)*max_height))
+            cr.move_to(self.width - self.borders[HORZ] - max_width - 5, self.borders[VERT] + ((idx+1)*max_height))
             cr.show_text(key)
-            i += 1
 
     def render_errors(self):
         cr = self.context
@@ -688,7 +654,6 @@ class ScatterPlot( Plot ):
                         cr.set_dash([])
                     last_tuple = tuple
 
-
 class DotLinePlot(ScatterPlot):
     def __init__(self, 
                  surface=None,
@@ -770,15 +735,12 @@ class FunctionPlot(ScatterPlot):
         
         #This function converts a function, a list of functions or a dictionary
         #of functions into its corresponding array of data
-        
         data = None
-        
         #if no bounds are provided
         if x_bounds == None:
             x_bounds = (0,10)
-        
-        #dictionary:
-        if hasattr(function, "keys"):
+
+        if hasattr(function, "keys"): #dictionary:
             data = {}
             for key in function.keys():
                 data[ key ] = []
@@ -786,9 +748,7 @@ class FunctionPlot(ScatterPlot):
                 while i <= x_bounds[1] :
                     data[ key ].append( function[ key ](i) )
                     i += self.step
-        
-        #list of functions
-        elif hasattr( function,'__delitem__' ) :
+        elif hasattr(function, "__delitem__"): #list of functions
             data = []
             for index,f in enumerate( function ) : 
                 data.append( [] )
@@ -796,9 +756,7 @@ class FunctionPlot(ScatterPlot):
                 while i <= x_bounds[1] :
                     data[ index ].append( f(i) )
                     i += self.step
-        
-        #function
-        else:
+        else: #function
             data = []
             i = x_bounds[0]
             while i <= x_bounds[1] :
@@ -859,13 +817,13 @@ class BarPlot(Plot):
         self.bounds = {}
         self.bounds[HORZ] = x_bounds
         self.bounds[VERT] = y_bounds
-
-        Plot.__init__(self, surface, data, width, height, background, border, x_labels, y_labels, series_colors)
         self.grid = grid
         self.rounded_corners = rounded_corners
         self.three_dimension = three_dimension
-
+        self.x_label_angle = math.pi / 2.5
         self.max_value = {}
+
+        Plot.__init__(self, surface, data, width, height, background, border, x_labels, y_labels, series_colors)
 
     def load_series(self, data, x_labels = None, y_labels = None, series_colors = None):
         Plot.load_series(self, data, x_labels, y_labels, series_colors)
@@ -873,7 +831,7 @@ class BarPlot(Plot):
         
     def process_colors(self, series_colors):
         #Data for a BarPlot might be a List or a List of Lists.
-        #On the first case, colors must generated for all bars,
+        #On the first case, colors must be generated for all bars,
         #On the second, colors must be generated for each of the inner lists.
         if hasattr(self.data[0], '__getitem__'):
             length = max(len(series) for series in self.data)
@@ -882,20 +840,6 @@ class BarPlot(Plot):
             
         Plot.process_colors( self, series_colors, length )
         
-    def calc_boundaries(self):
-        
-        if not self.bounds[HORZ]:
-            self.bounds[HORZ] = (0, len(self.data))
-
-        if not self.bounds[VERT]:
-            max_data_value = min_data_value = 0
-            for series in self.data:
-                if max(series) > max_data_value:
-                    max_data_value = max(series)
-                if min(series) < min_data_value:
-                    min_data_value = min(series)
-            self.bounds[VERT] = (min_data_value, max_data_value)
-
     def calc_extents(self, direction):
         self.max_value[direction] = 0
         if self.labels[direction]:
@@ -904,14 +848,6 @@ class BarPlot(Plot):
             self.borders[other_direction(direction)] = (2-direction)*self.max_value[direction] + self.border + direction*(5)
         else:
             self.borders[other_direction(direction)] = self.border
-
-    def calc_horz_extents(self):
-        self.calc_extents(HORZ)
-
-    def calc_vert_extents(self):
-        self.calc_extents(VERT)
-        if self.labels[VERT] and not self.labels[HORZ]:
-            self.borders[VERT] += 10
 
     def render(self):
         self.calc_horz_extents()
@@ -948,20 +884,6 @@ class BarPlot(Plot):
         self.context.line_to(x0-shift, y0+shift)
         self.context.close_path()
 
-    def render_grid(self):
-        self.context.set_source_rgba(0.8, 0.8, 0.8)
-        if self.labels[VERT]:
-            lines = len(self.labels[VERT])
-        else:
-            lines = 10
-        vertical_step = float(self.height - 2*self.borders[VERT])/(lines-1)
-        y = self.borders[VERT]
-        for x in xrange(0, lines):
-            self.context.move_to(self.borders[HORZ], y)
-            self.context.line_to(self.width - self.border, y)
-            self.context.stroke()
-            y += vertical_step
-
     def render_ground(self):
         self.draw_3d_rectangle_front(self.borders[HORZ], self.height - self.borders[VERT], 
                                      self.width - self.borders[HORZ], self.height - self.borders[VERT] + 5, 10)
@@ -982,26 +904,234 @@ class BarPlot(Plot):
             self.render_horz_labels()
         if self.labels[VERT]:
             self.render_vert_labels()
+        
+    def draw_rectangle(self, x0, y0, x1, y1):
+        self.context.arc(x0+5, y0+5, 5, -math.pi, -math.pi/2)
+        self.context.line_to(x1-5, y0)
+        self.context.arc(x1-5, y0+5, 5, -math.pi/2, 0)
+        self.context.line_to(x1, y1-5)
+        self.context.arc(x1-5, y1-5, 5, 0, math.pi/2)
+        self.context.line_to(x0+5, y1)
+        self.context.arc(x0+5, y1-5, 5, math.pi/2, math.pi)
+        self.context.line_to(x0, y0+5)
+        self.context.close_path()
 
-    def render_labels(self):
-        self.context.set_font_size(self.font_size * 0.8)
+class HorizontalBarPlot(BarPlot):
+    def __init__(self, 
+                 surface = None,
+                 data = None,
+                 width = 640,
+                 height = 480,
+                 background = None,
+                 border = 0,
+                 grid = False,
+                 rounded_corners = False,
+                 three_dimension = False,
+                 x_labels = None,
+                 y_labels = None,
+                 x_bounds = None,
+                 y_bounds = None,
+                 series_colors = None):
 
+        self.bounds = {}
+        self.bounds[HORZ] = x_bounds
+        self.bounds[VERT] = y_bounds
+        self.grid = grid
+        self.rounded_corners = rounded_corners
+        self.three_dimension = three_dimension
+        self.x_label_angle = math.pi / 2.5
+        self.max_value = {}
+
+        Plot.__init__(self, surface, data, width, height, background, border, x_labels, y_labels, series_colors)
+
+    def calc_boundaries(self):
+        if not self.bounds[HORZ]:
+            max_data_value = max(max(serie) for serie in self.data)
+            self.bounds[HORZ] = (0, max_data_value)
+        if not self.bounds[VERT]:
+            self.bounds[VERT] = (0, len(self.data))
+
+    def calc_horz_extents(self):
+        self.calc_extents(HORZ)
+
+    def calc_vert_extents(self):
+        self.calc_extents(VERT)
+        if self.labels[HORZ] and not self.labels[VERT]:
+            self.borders[HORZ] += 10
+
+    def render_grid(self):
+        self.context.set_source_rgba(0.8, 0.8, 0.8)
         if self.labels[HORZ]:
-            self.render_horz_labels()
-        if self.labels[VERT]:
-            self.render_vert_labels()
+            self.context.set_font_size(self.font_size * 0.8)
+            step = (self.width - 2*self.borders[HORZ])/(len(self.labels[HORZ])-1)
+            x = self.borders[HORZ]
+            next_x = 0
+            for item in self.labels[HORZ]:
+                width = self.context.text_extents(item)[2]
+                if x - width/2 > next_x and x - width/2 > self.border:
+                    self.context.move_to(x, self.border)
+                    self.context.line_to(x, self.height - self.borders[VERT])
+                    self.context.stroke()
+                    next_x = x + width/2
+                x += step
+        else:
+            lines = 10
+            horizontal_step = float(self.width - 2*self.borders[HORZ])/(lines-1)
+            x = self.borders[HORZ]
+            for y in xrange(0, lines):
+                self.context.move_to(x, self.border)
+                self.context.line_to(x, self.height - self.borders[VERT])
+                self.context.stroke()
+                x += horizontal_step
 
     def render_horz_labels(self):
-        step = (self.width - self.borders[HORZ] - self.border)/len(self.labels[HORZ])
-        x = self.borders[HORZ] + step/2
+        step = (self.width - 2*self.borders[HORZ])/(len(self.labels[HORZ])-1)
+        x = self.borders[HORZ]
+        next_x = 0
 
         for item in self.labels[HORZ]:
             self.context.set_source_rgba(*self.label_color)
             width = self.context.text_extents(item)[2]
-            self.context.move_to(x - width/2, self.height - self.borders[VERT] + self.max_value[HORZ] + 3)
-            self.context.show_text(item)
+            if x - width/2 > next_x and x - width/2 > self.border:
+                self.context.move_to(x - width/2, self.height - self.borders[VERT] + self.max_value[HORZ] + 3)
+                self.context.show_text(item)
+                next_x = x + width/2
             x += step
+            
+    def render_vert_labels(self):
+        step = (self.height - self.borders[VERT] - self.border)/(len(self.labels[VERT]))
+        y = self.border + step/2
 
+        for item in self.labels[VERT]:
+            self.context.set_source_rgba(*self.label_color)
+            width, height = self.context.text_extents(item)[2:4]
+            self.context.move_to(self.borders[HORZ] - width - 5, y + height/2)
+            self.context.show_text(item)
+            y += step
+        self.labels[VERT].reverse()
+        
+    def draw_rectangle(self, x0, y0, x1, y1):
+        self.context.arc(x0+5, y0+5, 5, -math.pi, -math.pi/2)
+        self.context.line_to(x1-5, y0)
+        self.context.arc(x1-5, y0+5, 5, -math.pi/2, 0)
+        self.context.line_to(x1, y1-5)
+        self.context.arc(x1-5, y1-5, 5, 0, math.pi/2)
+        self.context.line_to(x0+5, y1)
+        self.context.arc(x0+5, y1-5, 5, math.pi/2, math.pi)
+        self.context.line_to(x0, y0+5)
+        self.context.close_path()
+
+    def render_plot(self):
+        plot_width = self.width - 2*self.borders[HORZ]
+        plot_height = self.height - self.borders[VERT] - self.border
+        plot_top = self.height - self.borders[VERT]
+
+        series_amplitude = self.bounds[HORZ][1] - self.bounds[HORZ][0]
+
+        x0 = self.borders[HORZ]
+        
+        vertical_step = float(plot_height)/len(self.data)
+        if series_amplitude:
+            horizontal_step = float(plot_width)/series_amplitude
+        else:
+            horizontal_step = 0.00
+
+        for i,series in enumerate(self.data):
+            inner_step = vertical_step/(len(series) + 0.4)
+            y0 = self.border + i*vertical_step + 0.2*inner_step
+            for number,key in enumerate(series):
+                linear = cairo.LinearGradient( key*horizontal_step/2, y0, key*horizontal_step/2, y0 + inner_step,  )
+                #FIXME: test if set_source_rgba accepts 3 parameters
+                color = self.series_colors[number]
+                linear.add_color_stop_rgba(0.0, 3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0,1.0)
+                linear.add_color_stop_rgba(1.0, *color)
+                self.context.set_source(linear)
+                
+                if self.rounded_corners and key != 0:
+                    self.draw_rectangle(x0, y0, x0 + key*horizontal_step, y0 + inner_step)
+                    self.context.fill()
+                else:
+                    self.context.rectangle(x0, y0, key*horizontal_step, inner_step)
+                    self.context.fill()
+                
+                y0 += inner_step
+    
+class VerticalBarPlot(BarPlot):
+    def __init__(self, 
+                 surface = None,
+                 data = None,
+                 width = 640,
+                 height = 480,
+                 background = None,
+                 border = 0,
+                 grid = False,
+                 rounded_corners = False,
+                 three_dimension = False,
+                 x_labels = None,
+                 y_labels = None,
+                 x_bounds = None,
+                 y_bounds = None,
+                 series_colors = None):
+
+        BarPlot.__init__(self, surface, data, width, height, background, border, grid, rounded_corners, three_dimension,
+                         x_labels, y_labels, x_bounds, y_bounds, series_colors)
+
+    def calc_boundaries(self):
+        if not self.bounds[HORZ]:
+            self.bounds[HORZ] = (0, len(self.data))
+        if not self.bounds[VERT]:
+            max_data_value = max(max(serie) for serie in self.data)
+            self.bounds[VERT] = (0, max_data_value)
+
+    def calc_horz_extents(self):
+        self.calc_extents(HORZ)
+
+    def calc_vert_extents(self):
+        self.calc_extents(VERT)
+        if self.labels[VERT] and not self.labels[HORZ]:
+            self.borders[VERT] += 10
+
+    def render_grid(self):
+        self.context.set_source_rgba(0.8, 0.8, 0.8)
+        if self.labels[VERT]:
+            lines = len(self.labels[VERT])
+        else:
+            lines = 10
+        vertical_step = float(self.height - 2*self.borders[VERT])/(lines-1)
+        y = self.borders[VERT]
+        for x in xrange(0, lines):
+            self.context.move_to(self.borders[HORZ], y)
+            self.context.line_to(self.width - self.border, y)
+            self.context.stroke()
+            y += vertical_step
+            
+    def render_ground(self):
+        self.draw_3d_rectangle_front(self.borders[HORZ], self.height - self.borders[VERT], 
+                                     self.width - self.borders[HORZ], self.height - self.borders[VERT] + 5, 10)
+        self.context.fill()
+
+        self.draw_3d_rectangle_side (self.borders[HORZ], self.height - self.borders[VERT], 
+                                     self.width - self.borders[HORZ], self.height - self.borders[VERT] + 5, 10)
+        self.context.fill()
+
+        self.draw_3d_rectangle_top  (self.borders[HORZ], self.height - self.borders[VERT], 
+                                     self.width - self.borders[HORZ], self.height - self.borders[VERT] + 5, 10)
+        self.context.fill()
+
+    def render_horz_labels(self):
+        step = (self.width - self.borders[HORZ] - self.border)/len(self.labels[HORZ])
+        x = self.borders[HORZ] + step/2
+        next_x = 0
+
+        for item in self.labels[HORZ]:
+            self.context.set_source_rgba(*self.label_color)
+            width = self.context.text_extents(item)[2]
+            if x - width/2 > next_x and x - width/2 > self.borders[HORZ]:
+                self.context.move_to(x - width/2, self.height - self.borders[VERT] + self.max_value[HORZ] + 3)
+                self.context.show_text(item)
+                next_x = x + width/2
+            x += step
+            
     def render_vert_labels(self):
         y = self.borders[VERT]
         step = (self.height - 2*self.borders[VERT])/(len(self.labels[VERT]) - 1)
@@ -1067,7 +1197,7 @@ class BarPlot(Plot):
                     self.context.fill()
                 
                 x0 += inner_step
-
+    
 class PiePlot(Plot):
     def __init__ (self,
             surface = None, 
@@ -1088,6 +1218,7 @@ class PiePlot(Plot):
 
     def load_series(self, data, x_labels=None, y_labels=None, series_colors=None):
         Plot.load_series(self, data, x_labels, y_labels, series_colors)
+        self.data = sorted(self.data)
 
     def draw_piece(self, angle, next_angle):
         self.context.move_to(self.center[0],self.center[1])
@@ -1128,7 +1259,7 @@ class PiePlot(Plot):
             angle = next_angle
 
     def render_plot(self):
-        angle = 0
+        angle = 3*math.pi/2.0
         next_angle = 0
         x0,y0 = self.center
         cr = self.context
@@ -1629,23 +1760,71 @@ def gantt_chart(name, pieces, width, height, x_labels, y_labels, colors):
     plot.render()
     plot.commit()
 
-def bar_plot(name, 
-             data, 
-             width, 
-             height, 
-             background = None, 
-             border = 0, 
-             grid = False,
-             rounded_corners = False,
-             three_dimension = False,
-             x_labels = None, 
-             y_labels = None, 
-             x_bounds = None, 
-             y_bounds = None,
-             colors = None):
-
+def vertical_bar_plot(name, 
+             	      data, 
+                      width, 
+                      height, 
+                      background = None, 
+                      border = 0, 
+                      grid = False,
+                      rounded_corners = False,
+                      three_dimension = False,
+                      x_labels = None, 
+                      y_labels = None, 
+                      x_bounds = None, 
+                      y_bounds = None,
+                      colors = None):
+    #TODO: Fix docstring for vertical_bar_plot
     '''
-        - Function to generate Bar Plot Charts.
+        - Function to generate vertical Bar Plot Charts.
+
+        bar_plot(name, data, width, height, background, border, grid, rounded_corners, three_dimension, 
+                 x_labels, y_labels, x_bounds, y_bounds, colors):
+
+        - Parameters
+        
+        name - Name of the desired output file, no need to input the .svg as it will be added at runtime;
+        data - The list, list of lists or dictionary holding the data to be plotted;
+        width, height - Dimensions of the output image;
+        background - A 3 element tuple representing the rgb color expected for the background or a new cairo linear gradient. 
+                     If left None, a gray to white gradient will be generated;
+        border - Distance in pixels of a square border into which the graphics will be drawn;
+        grid - Whether or not the gris is to be drawn;
+        rounded_corners - Whether or not the bars should have rounded corners;
+        three_dimension - Whether or not the bars should be drawn in pseudo 3D;
+        x_labels, y_labels - lists of strings containing the horizontal and vertical labels for the axis;
+        x_bounds, y_bounds - tuples containing the lower and upper value bounds for the data to be plotted;
+        colors - List containing the colors expected for each of the bars.
+
+        - Example of use
+
+        data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        CairoPlot.vertical_bar_plot ('bar2', data, 400, 300, border = 20, grid = True, rounded_corners = False)
+    '''
+    
+    plot = VerticalBarPlot(name, data, width, height, background, border,
+                           grid, rounded_corners, three_dimension, x_labels, y_labels, x_bounds, y_bounds, colors)
+    plot.render()
+    plot.commit()
+
+def horizontal_bar_plot(name, 
+                       data, 
+                       width, 
+                       height, 
+                       background = None, 
+                       border = 0, 
+                       grid = False,
+                       rounded_corners = False,
+                       three_dimension = False,
+                       x_labels = None, 
+                       y_labels = None, 
+                       x_bounds = None, 
+                       y_bounds = None,
+                       colors = None):
+
+    #TODO: Fix docstring for horizontal_bar_plot
+    '''
+        - Function to generate Horizontal Bar Plot Charts.
 
         bar_plot(name, data, width, height, background, border, grid, rounded_corners, three_dimension, 
                  x_labels, y_labels, x_bounds, y_bounds, colors):
@@ -1671,8 +1850,8 @@ def bar_plot(name,
         CairoPlot.bar_plot ('bar2', data, 400, 300, border = 20, grid = True, rounded_corners = False)
     '''
     
-    plot = BarPlot(name, data, width, height, background, border,
-                   grid, rounded_corners, three_dimension, x_labels, y_labels, x_bounds, y_bounds, colors)
+    plot = HorizontalBarPlot(name, data, width, height, background, border,
+                             grid, rounded_corners, three_dimension, x_labels, y_labels, x_bounds, y_bounds, colors)
     plot.render()
     plot.commit()
 
