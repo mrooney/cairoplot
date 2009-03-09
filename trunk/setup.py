@@ -12,7 +12,7 @@ setup(
         easy and intuitive way, creating beautiful results for presentations.
         ''',
     name='Cairoplot',
-    py_modules=['CairoPlot'],
+    py_modules=['cairoplot'],
     url='http://linil.wordpress.com/2008/09/16/cairoplot-11/',
     version='1.1',
     )
