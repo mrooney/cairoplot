@@ -42,7 +42,8 @@ NORM = 2
 COLORS = {"red"    : (1.0,0.0,0.0,1.0), "lime"    : (0.0,1.0,0.0,1.0), "blue"   : (0.0,0.0,1.0,1.0),
           "maroon" : (0.5,0.0,0.0,1.0), "green"   : (0.0,0.5,0.0,1.0), "navy"   : (0.0,0.0,0.5,1.0),
           "yellow" : (1.0,1.0,0.0,1.0), "magenta" : (1.0,0.0,1.0,1.0), "cyan"   : (0.0,1.0,1.0,1.0),
-          "orange" : (1.0,0.5,0.0,1.0), "white"   : (1.0,1.0,1.0,1.0), "black"  : (0.0,0.0,0.0,1.0)}
+          "orange" : (1.0,0.5,0.0,1.0), "white"   : (1.0,1.0,1.0,1.0), "black"  : (0.0,0.0,0.0,1.0),
+          "transparent" : (0.0,0.0,0.0,0.0)}
 
 THEMES = {"black_red"         : [(0.0,0.0,0.0,1.0), (1.0,0.0,0.0,1.0)],
           "red_green_blue"    : [(1.0,0.0,0.0,1.0), (0.0,1.0,0.0,1.0), (0.0,0.0,1.0,1.0)],
@@ -106,8 +107,6 @@ class Plot(object):
                  series_colors = None):
         random.seed(2)
         self.create_surface(surface, width, height)
-        #self.dimensions[HORZ] = width
-        #self.dimensions[VERT] = height
         self.dimensions = {}
         self.dimensions[HORZ] = width
         self.dimensions[VERT] = height
@@ -218,6 +217,8 @@ class Plot(object):
             self.background = cairo.LinearGradient(self.dimensions[HORZ] / 2, 0, self.dimensions[HORZ] / 2, self.dimensions[VERT])
             self.background.add_color_stop_rgba(0,1.0,1.0,1.0,1.0)
             self.background.add_color_stop_rgba(1.0,0.9,0.9,0.9,1.0)
+        elif not hasattr(background,"__iter__") and background.lower() in COLORS:
+            self.background = COLORS[background]
         else:
             if type(background) in (cairo.LinearGradient, tuple):
                 self.background = background
