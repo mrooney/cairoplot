@@ -43,6 +43,7 @@ COLORS = {"red"    : (1.0,0.0,0.0,1.0), "lime"    : (0.0,1.0,0.0,1.0), "blue"   
           "maroon" : (0.5,0.0,0.0,1.0), "green"   : (0.0,0.5,0.0,1.0), "navy"   : (0.0,0.0,0.5,1.0),
           "yellow" : (1.0,1.0,0.0,1.0), "magenta" : (1.0,0.0,1.0,1.0), "cyan"   : (0.0,1.0,1.0,1.0),
           "orange" : (1.0,0.5,0.0,1.0), "white"   : (1.0,1.0,1.0,1.0), "black"  : (0.0,0.0,0.0,1.0),
+          "gray" : (0.5,0.5,0.5,1.0), "light_gray" : (0.9,0.9,0.9,1.0),
           "transparent" : (0.0,0.0,0.0,0.0)}
 
 THEMES = {"black_red"         : [(0.0,0.0,0.0,1.0), (1.0,0.0,0.0,1.0)],
@@ -214,16 +215,19 @@ class Plot(object):
 
     def set_background(self, background):
         if background is None:
-            self.background = cairo.LinearGradient(self.dimensions[HORZ] / 2, 0, self.dimensions[HORZ] / 2, self.dimensions[VERT])
-            self.background.add_color_stop_rgba(0,1.0,1.0,1.0,1.0)
-            self.background.add_color_stop_rgba(1.0,0.9,0.9,0.9,1.0)
-        elif not hasattr(background,"__iter__") and background.lower() in COLORS:
-            self.background = COLORS[background]
+            self.background = (0.0,0.0,0.0,0.0)
+        elif type(background) in (cairo.LinearGradient, tuple):
+            self.background = background
+        elif not hasattr(background,"__iter__"):
+            colors = background.split(" ")
+            if len(colors) == 1 and colors[0] in COLORS:
+                self.background = COLORS[background]
+            elif len(colors) > 1:
+                self.background = cairo.LinearGradient(self.dimensions[HORZ] / 2, 0, self.dimensions[HORZ] / 2, self.dimensions[VERT])
+                for index,color in enumerate(colors):
+                    self.background.add_color_stop_rgba(float(index)/(len(colors)-1),*COLORS[color])
         else:
-            if type(background) in (cairo.LinearGradient, tuple):
-                self.background = background
-            else:
-                raise TypeError ("Background should be either cairo.LinearGradient or a 3-tuple, not %s" % type(background))
+            raise TypeError ("Background should be either cairo.LinearGradient or a 3-tuple, not %s" % type(background))
         
     def render_background(self):
         if isinstance(self.background, cairo.LinearGradient):
@@ -809,7 +813,7 @@ class BarPlot(Plot):
                  data = None,
                  width = 640,
                  height = 480,
-                 background = None,
+                 background = "white light_gray",
                  border = 0,
                  grid = False,
                  rounded_corners = False,
@@ -968,7 +972,7 @@ class HorizontalBarPlot(BarPlot):
                  data = None,
                  width = 640,
                  height = 480,
-                 background = None,
+                 background = "white light_gray",
                  border = 0,
                  grid = False,
                  rounded_corners = False,
@@ -1113,7 +1117,7 @@ class VerticalBarPlot(BarPlot):
                  data = None,
                  width = 640,
                  height = 480,
-                 background = None,
+                 background = "white light_gray",
                  border = 0,
                  grid = False,
                  rounded_corners = False,
@@ -1271,7 +1275,7 @@ class PiePlot(Plot):
             data = None, 
             width = 640, 
             height = 480, 
-            background = None,
+            background = "white light_gray",
             gradient = False,
             shadow = False,
             colors = None):
@@ -1358,7 +1362,7 @@ class DonutPlot(PiePlot):
             data = None, 
             width = 640, 
             height = 480,
-            background = None,
+            background = "white light_gray",
             gradient = False,
             shadow = False,
             colors = None,
@@ -1592,7 +1596,7 @@ def scatter_plot(name,
                  errory = None,
                  width  = 640,
                  height = 480,
-                 background = None,
+                 background = "white light_gray",
                  border = 0,
                  axis = False,
                  dash = False,
@@ -1635,7 +1639,7 @@ def dot_line_plot(name,
                   data,
                   width,
                   height,
-                  background = None,
+                  background = "white light_gray",
                   border = 0,
                   axis = False,
                   dash = False,
@@ -1652,7 +1656,7 @@ def dot_line_plot(name,
     '''
         - Function to plot graphics using dots and lines.
         
-        dot_line_plot (name, data, width, height, background = None, border = 0, axis = False, grid = False, x_labels = None, y_labels = None, x_bounds = None, y_bounds = None)
+        dot_line_plot (name, data, width, height, background = "white light_gray", border = 0, axis = False, grid = False, x_labels = None, y_labels = None, x_bounds = None, y_bounds = None)
 
         - Parameters
 
@@ -1692,7 +1696,7 @@ def function_plot(name,
                   data,
                   width,
                   height,
-                  background = None,
+                  background = "white light_gray",
                   border = 0,
                   axis = True,
                   dots = False,
@@ -1711,7 +1715,7 @@ def function_plot(name,
     '''
         - Function to plot functions.
         
-        function_plot(name, data, width, height, background = None, border = 0, axis = True, grid = False, dots = False, x_labels = None, y_labels = None, x_bounds = None, y_bounds = None, step = 1, discrete = False)
+        function_plot(name, data, width, height, background = "white light_gray", border = 0, axis = True, grid = False, dots = False, x_labels = None, y_labels = None, x_bounds = None, y_bounds = None, step = 1, discrete = False)
 
         - Parameters
         
@@ -1741,12 +1745,12 @@ def function_plot(name,
     plot.render()
     plot.commit()
 
-def pie_plot( name, data, width, height, background = None, gradient = False, shadow = False, colors = None ):
+def pie_plot( name, data, width, height, background = "white light_gray", gradient = False, shadow = False, colors = None ):
 
     '''
         - Function to plot pie graphics.
         
-        pie_plot(name, data, width, height, background = None, gradient = False, colors = None)
+        pie_plot(name, data, width, height, background = "white light_gray", gradient = False, colors = None)
 
         - Parameters
         
@@ -1769,12 +1773,12 @@ def pie_plot( name, data, width, height, background = None, gradient = False, sh
     plot.render()
     plot.commit()
 
-def donut_plot(name, data, width, height, background = None, gradient = False, shadow = False, colors = None, inner_radius = -1):
+def donut_plot(name, data, width, height, background = "white light_gray", gradient = False, shadow = False, colors = None, inner_radius = -1):
 
     '''
         - Function to plot donut graphics.
         
-        donut_plot(name, data, width, height, background = None, gradient = False, inner_radius = -1)
+        donut_plot(name, data, width, height, background = "white light_gray", gradient = False, inner_radius = -1)
 
         - Parameters
         
@@ -1831,7 +1835,7 @@ def vertical_bar_plot(name,
              	      data, 
                       width, 
                       height, 
-                      background = None, 
+                      background = "white light_gray", 
                       border = 0, 
                       grid = False,
                       rounded_corners = False,
@@ -1880,7 +1884,7 @@ def horizontal_bar_plot(name,
                        data, 
                        width, 
                        height, 
-                       background = None, 
+                       background = "white light_gray", 
                        border = 0, 
                        grid = False,
                        rounded_corners = False,

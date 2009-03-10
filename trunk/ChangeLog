@@ -1,4 +1,13 @@
 
+2009-03-10  Rodrigo Araújo <alf.rodrigo@gmail.com>
+        * CairoPlot.py: Color themes now work correctly for backgrounds.
+        		 besides allowing the user to change the background
+        		 color using strings, it's also possible to define
+        		 gradients using a string of colors like "red white"
+        		 which would create a red-to-white gradient.
+        		 Furthermore, background=None now implies on
+        		 transparent backgrounds.
+
 2009-03-09  Rodrigo Araújo <alf.rodrigo@gmail.com>
         * CairoPlot.py: BarPlot, HorizontalBarPlot and VerticalBarPlot revision
         		 and refactoring;

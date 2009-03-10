@@ -12,7 +12,7 @@ test_dot_line_plot = 0
 test_function_plot = 0
 test_gantt_chart = 0
 test_pie_plot = 0
-test_themes = 1
+test_themes = 0
 
 if test_vertical_bar_plot:
     #Passing a dictionary
@@ -212,7 +212,7 @@ if test_themes :
     cairoplot.vertical_bar_plot ( 'bar_color_themes', data, 400, 300, border = 20, grid = True, colors="rainbow" )
     
     data = [[1,2,3,4,5,6,7,8,9,10,11,12,13,14]]
-    cairoplot.vertical_bar_plot ( 'bar_background_color', data, 400, 300, background = "black", border = 20, grid = True, colors="rainbow" )
+    cairoplot.vertical_bar_plot ( 'bar_color_themes', data, 400, 300, background = "white light_gray", border = 20, grid = True, colors="rainbow" )
     
     data = [ lambda x : 1, lambda y : y**2, lambda z : -z**2 ]
     cairoplot.function_plot( 'function_color_themes', data, 400, 300, grid = True, series_colors = ["red", "orange", "yellow"], step = 0.1 )
