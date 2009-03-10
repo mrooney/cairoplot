@@ -1,4 +1,8 @@
 
+2009-03-09  Rodrigo Araújo <alf.rodrigo@gmail.com>
+        * CairoPlot.py: BarPlot, HorizontalBarPlot and VerticalBarPlot revision
+        		 and refactoring;
+
 2009-03-08  Rodrigo Araújo <alf.rodrigo@gmail.com>
         * CairoPlot.py: Code revision and refactoring;
         		The BarPlot class is now a base class on top of which

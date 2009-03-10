@@ -24,8 +24,10 @@
 
 #Contributor: João S. O. Bueno
 
-#TODO: review the whole code
-#stopped at render method on Scatter Plot
+#TODO: review BarPlot Code
+#TODO: x_label colision problem on Horizontal Bar Plot
+#TODO: y_label's eat too much space on HBP
+
 
 __version__ = 1.1
 
@@ -104,8 +106,11 @@ class Plot(object):
                  series_colors = None):
         random.seed(2)
         self.create_surface(surface, width, height)
-        self.width = width
-        self.height = height
+        #self.dimensions[HORZ] = width
+        #self.dimensions[VERT] = height
+        self.dimensions = {}
+        self.dimensions[HORZ] = width
+        self.dimensions[VERT] = height
         self.context = cairo.Context(self.surface)
         self.labels={}
         self.labels[HORZ] = x_labels
@@ -210,7 +215,7 @@ class Plot(object):
 
     def set_background(self, background):
         if background is None:
-            self.background = cairo.LinearGradient(self.width / 2, 0, self.width / 2, self.height)
+            self.background = cairo.LinearGradient(self.dimensions[HORZ] / 2, 0, self.dimensions[HORZ] / 2, self.dimensions[VERT])
             self.background.add_color_stop_rgba(0,1.0,1.0,1.0,1.0)
             self.background.add_color_stop_rgba(1.0,0.9,0.9,0.9,1.0)
         else:
@@ -224,15 +229,15 @@ class Plot(object):
             self.context.set_source(self.background)
         else:
             self.context.set_source_rgba(*self.background)
-        self.context.rectangle(0,0, self.width, self.height)
+        self.context.rectangle(0,0, self.dimensions[HORZ], self.dimensions[VERT])
         self.context.fill()
         
     def render_bounding_box(self):
         self.context.set_source_rgba(*self.line_color)
         self.context.set_line_width(self.line_width)
         self.context.rectangle(self.border, self.border,
-                               self.width - 2 * self.border,
-                               self.height - 2 * self.border)
+                               self.dimensions[HORZ] - 2 * self.border,
+                               self.dimensions[VERT] - 2 * self.border)
         self.context.stroke()
 
     def render(self):
@@ -391,10 +396,10 @@ class ScatterPlot( Plot ):
         self.calc_extents(HORZ)
         self.calc_extents(VERT)
 
-        self.plot_height = self.height - 2 * self.borders[VERT]
-        self.plot_width = self.width - 2* self.borders[HORZ]
+        self.plot_height = self.dimensions[VERT] - 2 * self.borders[VERT]
+        self.plot_width = self.dimensions[HORZ] - 2* self.borders[HORZ]
         
-        self.plot_top = self.height - self.borders[VERT]
+        self.plot_top = self.dimensions[VERT] - self.borders[VERT]
                 
     def calc_steps(self):
         #Calculates all the x, y, z and color steps
@@ -442,24 +447,24 @@ class ScatterPlot( Plot ):
         #Draws both the axis lines and their titles
         cr = self.context
         cr.set_source_rgba(*self.line_color)
-        cr.move_to(self.borders[HORZ], self.height - self.borders[VERT])
+        cr.move_to(self.borders[HORZ], self.dimensions[VERT] - self.borders[VERT])
         cr.line_to(self.borders[HORZ], self.borders[VERT])
         cr.stroke()
 
-        cr.move_to(self.borders[HORZ], self.height - self.borders[VERT])
-        cr.line_to(self.width - self.borders[HORZ], self.height - self.borders[VERT])
+        cr.move_to(self.borders[HORZ], self.dimensions[VERT] - self.borders[VERT])
+        cr.line_to(self.dimensions[HORZ] - self.borders[HORZ], self.dimensions[VERT] - self.borders[VERT])
         cr.stroke()
 
         cr.set_source_rgba(*self.label_color)
         self.context.set_font_size( 1.2 * self.font_size )
         if self.titles[HORZ]:
             title_width,title_height = cr.text_extents(self.titles[HORZ])[2:4]
-            cr.move_to( self.width/2 - title_width/2, self.borders[VERT] - title_height/2 )
+            cr.move_to( self.dimensions[HORZ]/2 - title_width/2, self.borders[VERT] - title_height/2 )
             cr.show_text( self.titles[HORZ] )
 
         if self.titles[VERT]:
             title_width,title_height = cr.text_extents(self.titles[VERT])[2:4]
-            cr.move_to( self.width - self.borders[HORZ] + title_height/2, self.height/2 - title_width/2)
+            cr.move_to( self.dimensions[HORZ] - self.borders[HORZ] + title_height/2, self.dimensions[VERT]/2 - title_width/2)
             cr.rotate( math.pi/2 )
             cr.show_text( self.titles[VERT] )
             cr.rotate( -math.pi/2 )
@@ -474,14 +479,14 @@ class ScatterPlot( Plot ):
         
         for label in self.labels[HORZ][:-1]:
             cr.set_source_rgba(*self.grid_color)
-            cr.move_to(x, self.height - self.borders[VERT])
+            cr.move_to(x, self.dimensions[VERT] - self.borders[VERT])
             cr.line_to(x, self.borders[VERT])
             cr.stroke()
             x += vertical_step
         for label in self.labels[VERT][:-1]:
             cr.set_source_rgba(*self.grid_color)
             cr.move_to(self.borders[HORZ], y)
-            cr.line_to(self.width - self.borders[HORZ], y)
+            cr.line_to(self.dimensions[HORZ] - self.borders[HORZ], y)
             cr.stroke()
             y -= horizontal_step
     
@@ -497,7 +502,7 @@ class ScatterPlot( Plot ):
         for item in self.labels[HORZ]:
             cr.set_source_rgba(*self.label_color)
             width = cr.text_extents(item)[2]
-            cr.move_to(x, self.height - self.borders[VERT] + 5)
+            cr.move_to(x, self.dimensions[VERT] - self.borders[VERT] + 5)
             cr.rotate(self.x_label_angle)
             cr.show_text(item)
             cr.rotate(-self.x_label_angle)
@@ -531,33 +536,33 @@ class ScatterPlot( Plot ):
         bounding_box_width = max_width + color_box_width + 15
         bounding_box_height = (len(self.series_labels)+0.5) * max_height
         cr.set_source_rgba(1,1,1)
-        cr.rectangle(self.width - self.borders[HORZ] - bounding_box_width, self.borders[VERT],
+        cr.rectangle(self.dimensions[HORZ] - self.borders[HORZ] - bounding_box_width, self.borders[VERT],
                             bounding_box_width, bounding_box_height)
         cr.fill()
         
         cr.set_source_rgba(*self.line_color)
         cr.set_line_width(self.line_width)
-        cr.rectangle(self.width - self.borders[HORZ] - bounding_box_width, self.borders[VERT],
+        cr.rectangle(self.dimensions[HORZ] - self.borders[HORZ] - bounding_box_width, self.borders[VERT],
                             bounding_box_width, bounding_box_height)
         cr.stroke()
 
         for idx,key in enumerate(self.series_labels):
             #Draw color box
             cr.set_source_rgba(*self.series_colors[idx])
-            cr.rectangle(self.width - self.borders[HORZ] - max_width - color_box_width - 10, 
+            cr.rectangle(self.dimensions[HORZ] - self.borders[HORZ] - max_width - color_box_width - 10, 
                                 self.borders[VERT] + color_box_height + (idx*max_height) ,
                                 color_box_width, color_box_height)
             cr.fill()
             
             cr.set_source_rgba(0, 0, 0)
-            cr.rectangle(self.width - self.borders[HORZ] - max_width - color_box_width - 10, 
+            cr.rectangle(self.dimensions[HORZ] - self.borders[HORZ] - max_width - color_box_width - 10, 
                                 self.borders[VERT] + color_box_height + (idx*max_height),
                                 color_box_width, color_box_height)
             cr.stroke()
             
             #Draw series labels
             cr.set_source_rgba(0, 0, 0)
-            cr.move_to(self.width - self.borders[HORZ] - max_width - 5, self.borders[VERT] + ((idx+1)*max_height))
+            cr.move_to(self.dimensions[HORZ] - self.borders[HORZ] - max_width - 5, self.borders[VERT] + ((idx+1)*max_height))
             cr.show_text(key)
 
     def render_errors(self):
@@ -571,7 +576,7 @@ class ScatterPlot( Plot ):
             cr.set_source_rgba(*self.series_colors[index])
             for number, tuple in enumerate(serie):
                 x = x0 + self.horizontal_step * tuple[0]
-                y = self.height - y0 - self.vertical_step * tuple[1]
+                y = self.dimensions[VERT] - y0 - self.vertical_step * tuple[1]
                 if self.errors[HORZ]:
                     cr.move_to(x, y)
                     x1 = x - self.horizontal_step * self.errors[HORZ][0][number]
@@ -619,7 +624,7 @@ class ScatterPlot( Plot ):
                             cr.set_source_rgba( *self.get_circle_color( tuple[2]) )
                     x = x0 + self.horizontal_step*tuple[0]
                     y = y0 + self.vertical_step*tuple[1]
-                    cr.arc(x, self.height - y, radius, 0, 2*math.pi)
+                    cr.arc(x, self.dimensions[VERT] - y, radius, 0, 2*math.pi)
                     cr.fill()
         else:
             cr.rectangle(self.borders[HORZ], self.borders[VERT], self.plot_width, self.plot_height)
@@ -636,13 +641,13 @@ class ScatterPlot( Plot ):
                     if self.dots:
                         if self.variable_radius:
                             radius = tuple[2]*self.z_step
-                        cr.arc(x, self.height - y, radius, 0, 2*math.pi)
+                        cr.arc(x, self.dimensions[VERT] - y, radius, 0, 2*math.pi)
                         cr.fill()
                     if last_tuple :
                         old_x = x0 + self.horizontal_step*last_tuple[0]
                         old_y = y0 + self.vertical_step*last_tuple[1]
-                        cr.move_to( old_x, self.height - old_y )
-                        cr.line_to( x, self.height - y)
+                        cr.move_to( old_x, self.dimensions[VERT] - old_y )
+                        cr.line_to( x, self.dimensions[VERT] - y)
                         cr.set_line_width(self.series_widths[number])
 
                         # Display line as dash line 
@@ -787,13 +792,13 @@ class FunctionPlot(ScatterPlot):
                 for tuple in series:
                     x = x0 + self.horizontal_step * tuple[0]
                     y = y0 + self.vertical_step   * tuple[1]
-                    cr.move_to(x, self.height - y)
+                    cr.move_to(x, self.dimensions[VERT] - y)
                     cr.line_to(x, self.plot_top)
                     cr.set_line_width(self.series_widths[number])
                     cr.stroke()
                     if self.dots:
                         cr.new_path()
-                        cr.arc(x, self.height - y, 3, 0, 2.1 * math.pi)
+                        cr.arc(x, self.dimensions[VERT] - y, 3, 0, 2.1 * math.pi)
                         cr.close_path()
                         cr.fill()
 
@@ -807,21 +812,27 @@ class BarPlot(Plot):
                  border = 0,
                  grid = False,
                  rounded_corners = False,
+                 stack = False,
                  three_dimension = False,
                  x_labels = None,
                  y_labels = None,
                  x_bounds = None,
                  y_bounds = None,
-                 series_colors = None):
+                 series_colors = None,
+                 main_dir = None):
 
         self.bounds = {}
         self.bounds[HORZ] = x_bounds
         self.bounds[VERT] = y_bounds
         self.grid = grid
         self.rounded_corners = rounded_corners
+        self.stack = stack
         self.three_dimension = three_dimension
         self.x_label_angle = math.pi / 2.5
         self.max_value = {}
+        self.main_dir = main_dir
+        self.plot_dimensions = {}
+        self.steps = {}
 
         Plot.__init__(self, surface, data, width, height, background, border, x_labels, y_labels, series_colors)
 
@@ -839,7 +850,17 @@ class BarPlot(Plot):
             length = len( self.data )
             
         Plot.process_colors( self, series_colors, length )
-        
+    
+    def calc_boundaries(self):
+        if not self.bounds[self.main_dir]:
+            if self.stack:
+                max_data_value = max(sum(serie) for serie in self.data)
+            else:
+                max_data_value = max(max(serie) for serie in self.data)
+            self.bounds[self.main_dir] = (0, max_data_value)
+        if not self.bounds[other_direction(self.main_dir)]:
+            self.bounds[other_direction(self.main_dir)] = (0, len(self.data))
+    
     def calc_extents(self, direction):
         self.max_value[direction] = 0
         if self.labels[direction]:
@@ -849,20 +870,45 @@ class BarPlot(Plot):
         else:
             self.borders[other_direction(direction)] = self.border
 
-    def render(self):
+    def calc_horz_extents(self):
+        self.calc_extents(HORZ)
+
+    def calc_vert_extents(self):
+        self.calc_extents(VERT)
+
+    def calc_all_extents(self):
         self.calc_horz_extents()
         self.calc_vert_extents()
+        other_dir = other_direction(self.main_dir)
+        if self.labels[self.main_dir]:
+            self.plot_dimensions[self.main_dir] = self.dimensions[self.main_dir] - 2*self.borders[self.main_dir]
+        else:
+            self.plot_dimensions[self.main_dir] = self.dimensions[self.main_dir] - self.borders[self.main_dir] - 1.2*self.border
+        self.plot_dimensions[other_dir] = self.dimensions[other_dir] - self.borders[other_dir] - self.border
+        self.plot_top = self.dimensions[VERT] - self.borders[VERT]
+
+    def calc_steps(self):
+        other_dir = other_direction(self.main_dir)
+        self.series_amplitude = self.bounds[self.main_dir][1] - self.bounds[self.main_dir][0]
+        if self.series_amplitude:
+            self.steps[self.main_dir] = float(self.plot_dimensions[self.main_dir])/self.series_amplitude
+        else:
+            self.steps[self.main_dir] = 0.00
+        series_length = len(self.data)
+        self.steps[other_dir] = float(self.plot_dimensions[other_dir])/(series_length + 0.1*(series_length + 1))
+        self.space = 0.1*self.steps[other_dir]
+
         
+    def render(self):
+        self.calc_all_extents()
+        self.calc_steps()
         self.render_background()
         self.render_bounding_box()
-        
         if self.grid:
             self.render_grid()
         if self.three_dimension:
             self.render_ground()
-
         self.render_labels()
-        
         self.render_plot()
     
     def draw_3d_rectangle_front(self, x0, y0, x1, y1, shift):
@@ -885,27 +931,26 @@ class BarPlot(Plot):
         self.context.close_path()
 
     def render_ground(self):
-        self.draw_3d_rectangle_front(self.borders[HORZ], self.height - self.borders[VERT], 
-                                     self.width - self.borders[HORZ], self.height - self.borders[VERT] + 5, 10)
+        self.draw_3d_rectangle_front(self.borders[HORZ], self.dimensions[VERT] - self.borders[VERT], 
+                                     self.dimensions[HORZ] - self.borders[HORZ], self.dimensions[VERT] - self.borders[VERT] + 5, 10)
         self.context.fill()
 
-        self.draw_3d_rectangle_side (self.borders[HORZ], self.height - self.borders[VERT], 
-                                     self.width - self.borders[HORZ], self.height - self.borders[VERT] + 5, 10)
+        self.draw_3d_rectangle_side (self.borders[HORZ], self.dimensions[VERT] - self.borders[VERT], 
+                                     self.dimensions[HORZ] - self.borders[HORZ], self.dimensions[VERT] - self.borders[VERT] + 5, 10)
         self.context.fill()
 
-        self.draw_3d_rectangle_top  (self.borders[HORZ], self.height - self.borders[VERT], 
-                                     self.width - self.borders[HORZ], self.height - self.borders[VERT] + 5, 10)
+        self.draw_3d_rectangle_top  (self.borders[HORZ], self.dimensions[VERT] - self.borders[VERT], 
+                                     self.dimensions[HORZ] - self.borders[HORZ], self.dimensions[VERT] - self.borders[VERT] + 5, 10)
         self.context.fill()
 
     def render_labels(self):
         self.context.set_font_size(self.font_size * 0.8)
-
         if self.labels[HORZ]:
             self.render_horz_labels()
         if self.labels[VERT]:
             self.render_vert_labels()
         
-    def draw_rectangle(self, x0, y0, x1, y1):
+    def draw_round_rectangle(self, x0, y0, x1, y1):
         self.context.arc(x0+5, y0+5, 5, -math.pi, -math.pi/2)
         self.context.line_to(x1-5, y0)
         self.context.arc(x1-5, y0+5, 5, -math.pi/2, 0)
@@ -926,6 +971,7 @@ class HorizontalBarPlot(BarPlot):
                  border = 0,
                  grid = False,
                  rounded_corners = False,
+                 stack = False,
                  three_dimension = False,
                  x_labels = None,
                  y_labels = None,
@@ -933,59 +979,71 @@ class HorizontalBarPlot(BarPlot):
                  y_bounds = None,
                  series_colors = None):
 
-        self.bounds = {}
-        self.bounds[HORZ] = x_bounds
-        self.bounds[VERT] = y_bounds
-        self.grid = grid
-        self.rounded_corners = rounded_corners
-        self.three_dimension = three_dimension
-        self.x_label_angle = math.pi / 2.5
-        self.max_value = {}
-
-        Plot.__init__(self, surface, data, width, height, background, border, x_labels, y_labels, series_colors)
-
-    def calc_boundaries(self):
-        if not self.bounds[HORZ]:
-            max_data_value = max(max(serie) for serie in self.data)
-            self.bounds[HORZ] = (0, max_data_value)
-        if not self.bounds[VERT]:
-            self.bounds[VERT] = (0, len(self.data))
-
-    def calc_horz_extents(self):
-        self.calc_extents(HORZ)
+        BarPlot.__init__(self, surface, data, width, height, background, border, 
+                         grid, rounded_corners, stack, three_dimension,
+                         x_labels, y_labels, x_bounds, y_bounds, series_colors, HORZ)
 
     def calc_vert_extents(self):
         self.calc_extents(VERT)
         if self.labels[HORZ] and not self.labels[VERT]:
             self.borders[HORZ] += 10
 
+    def draw_rectangle_bottom(self, x0, y0, x1, y1):
+        self.context.arc(x0+5, y1-5, 5, math.pi/2, math.pi)
+        self.context.line_to(x0, y0+5)
+        self.context.arc(x0+5, y0+5, 5, -math.pi, -math.pi/2)
+        self.context.line_to(x1, y0)
+        self.context.line_to(x1, y1)
+        self.context.line_to(x0+5, y1)
+        self.context.close_path()
+    
+    def draw_rectangle_top(self, x0, y0, x1, y1):
+        self.context.arc(x1-5, y0+5, 5, -math.pi/2, 0)
+        self.context.line_to(x1, y1-5)
+        self.context.arc(x1-5, y1-5, 5, 0, math.pi/2)
+        self.context.line_to(x0, y1)
+        self.context.line_to(x0, y0)
+        self.context.line_to(x1, y0)
+        self.context.close_path()
+        
+    def draw_rectangle(self, index, length, x0, y0, x1, y1):
+        if length == 1:
+            BarPlot.draw_rectangle(self, x0, y0, x1, y1)
+        elif index == 0:
+            self.draw_rectangle_bottom(x0, y0, x1, y1)
+        elif index == length-1:
+            self.draw_rectangle_top(x0, y0, x1, y1)
+        else:
+            self.context.rectangle(x0, y0, x1-x0, y1-y0)
+
+    #TODO: Review BarPlot.render_grid code
     def render_grid(self):
         self.context.set_source_rgba(0.8, 0.8, 0.8)
         if self.labels[HORZ]:
             self.context.set_font_size(self.font_size * 0.8)
-            step = (self.width - 2*self.borders[HORZ])/(len(self.labels[HORZ])-1)
+            step = (self.dimensions[HORZ] - 2*self.borders[HORZ])/(len(self.labels[HORZ])-1)
             x = self.borders[HORZ]
             next_x = 0
             for item in self.labels[HORZ]:
                 width = self.context.text_extents(item)[2]
                 if x - width/2 > next_x and x - width/2 > self.border:
                     self.context.move_to(x, self.border)
-                    self.context.line_to(x, self.height - self.borders[VERT])
+                    self.context.line_to(x, self.dimensions[VERT] - self.borders[VERT])
                     self.context.stroke()
                     next_x = x + width/2
                 x += step
         else:
-            lines = 10
-            horizontal_step = float(self.width - 2*self.borders[HORZ])/(lines-1)
+            lines = 11
+            horizontal_step = float(self.plot_dimensions[HORZ])/(lines-1)
             x = self.borders[HORZ]
             for y in xrange(0, lines):
                 self.context.move_to(x, self.border)
-                self.context.line_to(x, self.height - self.borders[VERT])
+                self.context.line_to(x, self.dimensions[VERT] - self.borders[VERT])
                 self.context.stroke()
                 x += horizontal_step
 
     def render_horz_labels(self):
-        step = (self.width - 2*self.borders[HORZ])/(len(self.labels[HORZ])-1)
+        step = (self.dimensions[HORZ] - 2*self.borders[HORZ])/(len(self.labels[HORZ])-1)
         x = self.borders[HORZ]
         next_x = 0
 
@@ -993,68 +1051,60 @@ class HorizontalBarPlot(BarPlot):
             self.context.set_source_rgba(*self.label_color)
             width = self.context.text_extents(item)[2]
             if x - width/2 > next_x and x - width/2 > self.border:
-                self.context.move_to(x - width/2, self.height - self.borders[VERT] + self.max_value[HORZ] + 3)
+                self.context.move_to(x - width/2, self.dimensions[VERT] - self.borders[VERT] + self.max_value[HORZ] + 3)
                 self.context.show_text(item)
                 next_x = x + width/2
             x += step
-            
+
     def render_vert_labels(self):
-        step = (self.height - self.borders[VERT] - self.border)/(len(self.labels[VERT]))
-        y = self.border + step/2
+        series_length = len(self.labels[VERT])
+        step = (self.plot_dimensions[VERT] - (series_length + 1)*self.space)/(len(self.labels[VERT]))
+        y = self.border + step/2 + self.space
 
         for item in self.labels[VERT]:
             self.context.set_source_rgba(*self.label_color)
             width, height = self.context.text_extents(item)[2:4]
             self.context.move_to(self.borders[HORZ] - width - 5, y + height/2)
             self.context.show_text(item)
-            y += step
+            y += step + self.space
         self.labels[VERT].reverse()
-        
-    def draw_rectangle(self, x0, y0, x1, y1):
-        self.context.arc(x0+5, y0+5, 5, -math.pi, -math.pi/2)
-        self.context.line_to(x1-5, y0)
-        self.context.arc(x1-5, y0+5, 5, -math.pi/2, 0)
-        self.context.line_to(x1, y1-5)
-        self.context.arc(x1-5, y1-5, 5, 0, math.pi/2)
-        self.context.line_to(x0+5, y1)
-        self.context.arc(x0+5, y1-5, 5, math.pi/2, math.pi)
-        self.context.line_to(x0, y0+5)
-        self.context.close_path()
 
     def render_plot(self):
-        plot_width = self.width - 2*self.borders[HORZ]
-        plot_height = self.height - self.borders[VERT] - self.border
-        plot_top = self.height - self.borders[VERT]
-
-        series_amplitude = self.bounds[HORZ][1] - self.bounds[HORZ][0]
-
-        x0 = self.borders[HORZ]
-        
-        vertical_step = float(plot_height)/len(self.data)
-        if series_amplitude:
-            horizontal_step = float(plot_width)/series_amplitude
+        if self.stack:
+            for i,series in enumerate(self.data):
+                x0 = self.borders[HORZ]
+                y0 = self.borders[VERT] + i*self.steps[VERT] + (i+1)*self.space
+                for number,key in enumerate(series):
+                    linear = cairo.LinearGradient( key*self.steps[HORZ]/2, y0, key*self.steps[HORZ]/2, y0 + self.steps[VERT] )
+                    color = self.series_colors[number]
+                    linear.add_color_stop_rgba(0.0, 3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0,1.0)
+                    linear.add_color_stop_rgba(1.0, *color)
+                    self.context.set_source(linear)
+                    if self.rounded_corners:
+                        self.draw_rectangle(number, len(series), x0, y0, x0+key*self.steps[HORZ], y0+self.steps[VERT])
+                        self.context.fill()
+                    else:
+                        self.context.rectangle(x0, y0, key*self.steps[HORZ], self.steps[VERT])
+                        self.context.fill()
+                    x0 += key*self.steps[HORZ]
         else:
-            horizontal_step = 0.00
-
-        for i,series in enumerate(self.data):
-            inner_step = vertical_step/(len(series) + 0.4)
-            y0 = self.border + i*vertical_step + 0.2*inner_step
-            for number,key in enumerate(series):
-                linear = cairo.LinearGradient( key*horizontal_step/2, y0, key*horizontal_step/2, y0 + inner_step,  )
-                #FIXME: test if set_source_rgba accepts 3 parameters
-                color = self.series_colors[number]
-                linear.add_color_stop_rgba(0.0, 3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0,1.0)
-                linear.add_color_stop_rgba(1.0, *color)
-                self.context.set_source(linear)
-                
-                if self.rounded_corners and key != 0:
-                    self.draw_rectangle(x0, y0, x0 + key*horizontal_step, y0 + inner_step)
-                    self.context.fill()
-                else:
-                    self.context.rectangle(x0, y0, key*horizontal_step, inner_step)
-                    self.context.fill()
-                
-                y0 += inner_step
+            for i,series in enumerate(self.data):
+                inner_step = self.steps[VERT]/len(series)
+                x0 = self.borders[HORZ]
+                y0 = self.border + i*self.steps[VERT] + (i+1)*self.space
+                for number,key in enumerate(series):
+                    linear = cairo.LinearGradient(key*self.steps[HORZ]/2, y0, key*self.steps[HORZ]/2, y0 + inner_step)
+                    color = self.series_colors[number]
+                    linear.add_color_stop_rgba(0.0, 3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0,1.0)
+                    linear.add_color_stop_rgba(1.0, *color)
+                    self.context.set_source(linear)
+                    if self.rounded_corners and key != 0:
+                        BarPlot.draw_round_rectangle(self,x0, y0, x0 + key*self.steps[HORZ], y0 + inner_step)
+                        self.context.fill()
+                    else:
+                        self.context.rectangle(x0, y0, key*self.steps[HORZ], inner_step)
+                        self.context.fill()
+                    y0 += inner_step
     
 class VerticalBarPlot(BarPlot):
     def __init__(self, 
@@ -1066,6 +1116,7 @@ class VerticalBarPlot(BarPlot):
                  border = 0,
                  grid = False,
                  rounded_corners = False,
+                 stack = False,
                  three_dimension = False,
                  x_labels = None,
                  y_labels = None,
@@ -1073,68 +1124,91 @@ class VerticalBarPlot(BarPlot):
                  y_bounds = None,
                  series_colors = None):
 
-        BarPlot.__init__(self, surface, data, width, height, background, border, grid, rounded_corners, three_dimension,
-                         x_labels, y_labels, x_bounds, y_bounds, series_colors)
-
-    def calc_boundaries(self):
-        if not self.bounds[HORZ]:
-            self.bounds[HORZ] = (0, len(self.data))
-        if not self.bounds[VERT]:
-            max_data_value = max(max(serie) for serie in self.data)
-            self.bounds[VERT] = (0, max_data_value)
-
-    def calc_horz_extents(self):
-        self.calc_extents(HORZ)
+        BarPlot.__init__(self, surface, data, width, height, background, border, 
+                         grid, rounded_corners, stack, three_dimension,
+                         x_labels, y_labels, x_bounds, y_bounds, series_colors, VERT)
 
     def calc_vert_extents(self):
         self.calc_extents(VERT)
         if self.labels[VERT] and not self.labels[HORZ]:
             self.borders[VERT] += 10
 
+    def draw_rectangle_bottom(self, x0, y0, x1, y1):
+        self.context.move_to(x1,y1)
+        self.context.arc(x1-5, y1-5, 5, 0, math.pi/2)
+        self.context.line_to(x0+5, y1)
+        self.context.arc(x0+5, y1-5, 5, math.pi/2, math.pi)
+        self.context.line_to(x0, y0)
+        self.context.line_to(x1, y0)
+        self.context.line_to(x1, y1)
+        self.context.close_path()
+        
+    def draw_rectangle_top(self, x0, y0, x1, y1):
+        self.context.arc(x0+5, y0+5, 5, -math.pi, -math.pi/2)
+        self.context.line_to(x1-5, y0)
+        self.context.arc(x1-5, y0+5, 5, -math.pi/2, 0)
+        self.context.line_to(x1, y1)
+        self.context.line_to(x0, y1)
+        self.context.line_to(x0, y0)
+        self.context.close_path()
+        
+    def draw_rectangle(self, index, length, x0, y0, x1, y1):
+        if length == 1:
+            BarPlot.draw_rectangle(self, x0, y0, x1, y1)
+        elif index == 0:
+            self.draw_rectangle_bottom(x0, y0, x1, y1)
+        elif index == length-1:
+            self.draw_rectangle_top(x0, y0, x1, y1)
+        else:
+            self.context.rectangle(x0, y0, x1-x0, y1-y0)
+
     def render_grid(self):
         self.context.set_source_rgba(0.8, 0.8, 0.8)
         if self.labels[VERT]:
             lines = len(self.labels[VERT])
+            vertical_step = float(self.plot_dimensions[self.main_dir])/(lines-1)
+            y = self.borders[VERT]
         else:
-            lines = 10
-        vertical_step = float(self.height - 2*self.borders[VERT])/(lines-1)
-        y = self.borders[VERT]
+            lines = 11
+            vertical_step = float(self.plot_dimensions[self.main_dir])/(lines-1)
+            y = 1.2*self.border
         for x in xrange(0, lines):
             self.context.move_to(self.borders[HORZ], y)
-            self.context.line_to(self.width - self.border, y)
+            self.context.line_to(self.dimensions[HORZ] - self.border, y)
             self.context.stroke()
             y += vertical_step
             
     def render_ground(self):
-        self.draw_3d_rectangle_front(self.borders[HORZ], self.height - self.borders[VERT], 
-                                     self.width - self.borders[HORZ], self.height - self.borders[VERT] + 5, 10)
+        self.draw_3d_rectangle_front(self.borders[HORZ], self.dimensions[VERT] - self.borders[VERT], 
+                                     self.dimensions[HORZ] - self.borders[HORZ], self.dimensions[VERT] - self.borders[VERT] + 5, 10)
         self.context.fill()
 
-        self.draw_3d_rectangle_side (self.borders[HORZ], self.height - self.borders[VERT], 
-                                     self.width - self.borders[HORZ], self.height - self.borders[VERT] + 5, 10)
+        self.draw_3d_rectangle_side (self.borders[HORZ], self.dimensions[VERT] - self.borders[VERT], 
+                                     self.dimensions[HORZ] - self.borders[HORZ], self.dimensions[VERT] - self.borders[VERT] + 5, 10)
         self.context.fill()
 
-        self.draw_3d_rectangle_top  (self.borders[HORZ], self.height - self.borders[VERT], 
-                                     self.width - self.borders[HORZ], self.height - self.borders[VERT] + 5, 10)
+        self.draw_3d_rectangle_top  (self.borders[HORZ], self.dimensions[VERT] - self.borders[VERT], 
+                                     self.dimensions[HORZ] - self.borders[HORZ], self.dimensions[VERT] - self.borders[VERT] + 5, 10)
         self.context.fill()
 
     def render_horz_labels(self):
-        step = (self.width - self.borders[HORZ] - self.border)/len(self.labels[HORZ])
-        x = self.borders[HORZ] + step/2
+        series_length = len(self.labels[HORZ])
+        step = float (self.plot_dimensions[HORZ] - (series_length + 1)*self.space)/len(self.labels[HORZ])
+        x = self.borders[HORZ] + step/2 + self.space
         next_x = 0
 
         for item in self.labels[HORZ]:
             self.context.set_source_rgba(*self.label_color)
             width = self.context.text_extents(item)[2]
             if x - width/2 > next_x and x - width/2 > self.borders[HORZ]:
-                self.context.move_to(x - width/2, self.height - self.borders[VERT] + self.max_value[HORZ] + 3)
+                self.context.move_to(x - width/2, self.dimensions[VERT] - self.borders[VERT] + self.max_value[HORZ] + 3)
                 self.context.show_text(item)
                 next_x = x + width/2
-            x += step
+            x += step + self.space
             
     def render_vert_labels(self):
         y = self.borders[VERT]
-        step = (self.height - 2*self.borders[VERT])/(len(self.labels[VERT]) - 1)
+        step = (self.dimensions[VERT] - 2*self.borders[VERT])/(len(self.labels[VERT]) - 1)
 
         self.labels[VERT].reverse()
         for item in self.labels[VERT]:
@@ -1144,59 +1218,51 @@ class VerticalBarPlot(BarPlot):
             self.context.show_text(item)
             y += step
         self.labels[VERT].reverse()
-        
-    def draw_rectangle(self, x0, y0, x1, y1):
-        self.context.arc(x0+5, y0+5, 5, -math.pi, -math.pi/2)
-        self.context.line_to(x1-5, y0)
-        self.context.arc(x1-5, y0+5, 5, -math.pi/2, 0)
-        self.context.line_to(x1, y1-5)
-        self.context.arc(x1-5, y1-5, 5, 0, math.pi/2)
-        self.context.line_to(x0+5, y1)
-        self.context.arc(x0+5, y1-5, 5, math.pi/2, math.pi)
-        self.context.line_to(x0, y0+5)
-        self.context.close_path()
 
     def render_plot(self):
-        plot_width = self.width - self.borders[HORZ] - self.border
-        plot_height = self.height - 2 * self.borders[VERT]
-        plot_top = self.height - self.borders[VERT]
-
-        series_amplitude = self.bounds[VERT][1] - self.bounds[VERT][0]
-
-        y0 = self.borders[VERT]
-        
-        horizontal_step = float (plot_width) / len(self.data)
-        if series_amplitude:
-            vertical_step = float (plot_height) / series_amplitude
+        if self.stack:
+            for i,series in enumerate(self.data):
+                x0 = self.borders[HORZ] + i*self.steps[HORZ] + (i+1)*self.space
+                y0 = 0
+                for number,key in enumerate(series):
+                    linear = cairo.LinearGradient( x0, key*self.steps[VERT]/2, x0 + self.steps[HORZ], key*self.steps[VERT]/2 )
+                    color = self.series_colors[number]
+                    linear.add_color_stop_rgba(0.0, 3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0,1.0)
+                    linear.add_color_stop_rgba(1.0, *color)
+                    self.context.set_source(linear)
+                    if self.rounded_corners:
+                        self.draw_rectangle(number, len(series), x0, self.plot_top - y0 - key*self.steps[VERT], x0 + self.steps[HORZ], self.plot_top - y0)
+                        self.context.fill()
+                    else:
+                        self.context.rectangle(x0, self.plot_top - y0 - key*self.steps[VERT], self.steps[HORZ], key*self.steps[VERT])
+                        self.context.fill()
+                    y0 += key*self.steps[VERT]
         else:
-            vertical_step = 0.00
-
-        for i,series in enumerate(self.data):
-            inner_step = horizontal_step/(len(series) + 0.4)
-            x0 = self.borders[HORZ] + i*horizontal_step + 0.2*inner_step
-            for number,key in enumerate(series):
-                linear = cairo.LinearGradient( x0, key*vertical_step/2, x0 + inner_step, key*vertical_step/2 )
-                #FIXME: test if set_source_rgba accepts 3 parameters
-                color = self.series_colors[number]
-                linear.add_color_stop_rgba(0.0, 3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0,1.0)
-                linear.add_color_stop_rgba(1.0, *color)
-                self.context.set_source(linear)
-                
-                if self.rounded_corners and key != 0:
-                    self.draw_rectangle(x0, y0 + (series_amplitude - key)*vertical_step, x0+inner_step, y0 + series_amplitude*vertical_step)
-                    self.context.fill()
-                elif self.three_dimension:
-                    self.draw_3d_rectangle_front(x0, y0 + (series_amplitude - key)*vertical_step, x0+inner_step, y0 + series_amplitude*vertical_step, 5)
-                    self.context.fill()
-                    self.draw_3d_rectangle_side(x0, y0 + (series_amplitude - key)*vertical_step, x0+inner_step, y0 + series_amplitude*vertical_step, 5)
-                    self.context.fill()
-                    self.draw_3d_rectangle_top(x0, y0 + (series_amplitude - key)*vertical_step, x0+inner_step, y0 + series_amplitude*vertical_step, 5)
-                    self.context.fill()
-                else:
-                    self.context.rectangle(x0, y0 + (series_amplitude - key)*vertical_step, inner_step, key*vertical_step)
-                    self.context.fill()
-                
-                x0 += inner_step
+            for i,series in enumerate(self.data):
+                inner_step = self.steps[HORZ]/len(series)
+                y0 = self.borders[VERT]
+                x0 = self.borders[HORZ] + i*self.steps[HORZ] + (i+1)*self.space
+                for number,key in enumerate(series):
+                    linear = cairo.LinearGradient( x0, key*self.steps[VERT]/2, x0 + inner_step, key*self.steps[VERT]/2 )
+                    color = self.series_colors[number]
+                    linear.add_color_stop_rgba(0.0, 3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0,1.0)
+                    linear.add_color_stop_rgba(1.0, *color)
+                    self.context.set_source(linear)
+                    if self.rounded_corners and key != 0:
+                        BarPlot.draw_round_rectangle(self, x0, self.plot_top - key*self.steps[VERT], x0+inner_step, self.plot_top)
+                        self.context.fill()
+                    elif self.three_dimension:
+                        self.draw_3d_rectangle_front(x0, self.plot_top - key*self.steps[VERT], x0+inner_step, self.plot_top, 5)
+                        self.context.fill()
+                        self.draw_3d_rectangle_side(x0, self.plot_top - key*self.steps[VERT], x0+inner_step, self.plot_top, 5)
+                        self.context.fill()
+                        self.draw_3d_rectangle_top(x0, self.plot_top - key*self.steps[VERT], x0+inner_step, self.plot_top, 5)
+                        self.context.fill()
+                    else:
+                        self.context.rectangle(x0, self.plot_top - key*self.steps[VERT], inner_step, key*self.steps[VERT])
+                        self.context.fill()
+                    
+                    x0 += inner_step
     
 class PiePlot(Plot):
     def __init__ (self,
@@ -1210,9 +1276,9 @@ class PiePlot(Plot):
             colors = None):
 
         Plot.__init__( self, surface, data, width, height, background, series_colors = colors )
-        self.center = (self.width/2, self.height/2)
+        self.center = (self.dimensions[HORZ]/2, self.dimensions[VERT]/2)
         self.total = sum(self.data)
-        self.radius = min(self.width/3,self.height/3)
+        self.radius = min(self.dimensions[HORZ]/3,self.dimensions[VERT]/3)
         self.gradient = gradient
         self.shadow = shadow
 
@@ -1299,9 +1365,9 @@ class DonutPlot(PiePlot):
 
         Plot.__init__( self, surface, data, width, height, background, series_colors = colors )
         
-        self.center = ( self.width/2, self.height/2 )
+        self.center = ( self.dimensions[HORZ]/2, self.dimensions[VERT]/2 )
         self.total = sum( self.data )
-        self.radius = min( self.width/3,self.height/3 )
+        self.radius = min( self.dimensions[HORZ]/3,self.dimensions[VERT]/3 )
         self.inner_radius = inner_radius*self.radius
         
         if inner_radius == -1:
@@ -1366,10 +1432,10 @@ class GanttChart (Plot) :
 
     def calc_vert_extents(self):
         self.calc_extents(VERT)
-        self.borders[VERT] = self.height/(self.bounds[HORZ][1] + 1)
+        self.borders[VERT] = self.dimensions[VERT]/(self.bounds[HORZ][1] + 1)
 
     def calc_steps(self):
-        self.horizontal_step = (self.width - self.borders[HORZ])/(len(self.labels[VERT]))
+        self.horizontal_step = (self.dimensions[HORZ] - self.borders[HORZ])/(len(self.labels[VERT]))
         self.vertical_step = self.borders[VERT]
 
     def render(self):
@@ -1385,15 +1451,15 @@ class GanttChart (Plot) :
     def render_background(self):
         cr = self.context
         cr.set_source_rgba(255,255,255)
-        cr.rectangle(0,0,self.width, self.height)
+        cr.rectangle(0,0,self.dimensions[HORZ], self.dimensions[VERT])
         cr.fill()
         for number,item in enumerate(self.data):
-            linear = cairo.LinearGradient(self.width/2, self.borders[VERT] + number*self.vertical_step, 
-                                          self.width/2, self.borders[VERT] + (number+1)*self.vertical_step)
+            linear = cairo.LinearGradient(self.dimensions[HORZ]/2, self.borders[VERT] + number*self.vertical_step, 
+                                          self.dimensions[HORZ]/2, self.borders[VERT] + (number+1)*self.vertical_step)
             linear.add_color_stop_rgba(0,1.0,1.0,1.0,1.0)
             linear.add_color_stop_rgba(1.0,0.9,0.9,0.9,1.0)
             cr.set_source(linear)
-            cr.rectangle(0,self.borders[VERT] + number*self.vertical_step,self.width,self.vertical_step)
+            cr.rectangle(0,self.borders[VERT] + number*self.vertical_step,self.dimensions[HORZ],self.vertical_step)
             cr.fill()
 
     def render_grid(self):
@@ -1404,11 +1470,11 @@ class GanttChart (Plot) :
         for number,label in enumerate(self.labels[VERT]):
             h = cr.text_extents(label)[3]
             cr.move_to(self.borders[HORZ] + number*self.horizontal_step, self.vertical_step/2 + h)
-            cr.line_to(self.borders[HORZ] + number*self.horizontal_step, self.height)
+            cr.line_to(self.borders[HORZ] + number*self.horizontal_step, self.dimensions[VERT])
         cr.stroke()
 
     def render_labels(self):
-        self.context.set_font_size(0.02 * self.width)
+        self.context.set_font_size(0.02 * self.dimensions[HORZ])
 
         self.render_horz_labels()
         self.render_vert_labels()
@@ -1768,6 +1834,7 @@ def vertical_bar_plot(name,
                       border = 0, 
                       grid = False,
                       rounded_corners = False,
+                      stack = False,
                       three_dimension = False,
                       x_labels = None, 
                       y_labels = None, 
@@ -1803,7 +1870,8 @@ def vertical_bar_plot(name,
     '''
     
     plot = VerticalBarPlot(name, data, width, height, background, border,
-                           grid, rounded_corners, three_dimension, x_labels, y_labels, x_bounds, y_bounds, colors)
+                           grid, rounded_corners, stack, three_dimension, 
+                           x_labels, y_labels, x_bounds, y_bounds, colors)
     plot.render()
     plot.commit()
 
@@ -1815,6 +1883,7 @@ def horizontal_bar_plot(name,
                        border = 0, 
                        grid = False,
                        rounded_corners = False,
+                       stack = False,
                        three_dimension = False,
                        x_labels = None, 
                        y_labels = None, 
@@ -1851,7 +1920,8 @@ def horizontal_bar_plot(name,
     '''
     
     plot = HorizontalBarPlot(name, data, width, height, background, border,
-                             grid, rounded_corners, three_dimension, x_labels, y_labels, x_bounds, y_bounds, colors)
+                             grid, rounded_corners, stack, three_dimension, 
+                             x_labels, y_labels, x_bounds, y_bounds, colors)
     plot.render()
     plot.commit()
 

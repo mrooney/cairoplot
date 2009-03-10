@@ -6,13 +6,13 @@ import cairoplot
 
 test_vertical_bar_plot = 1
 test_horizontal_bar_plot = 1
-test_scatter_plot = 1
-test_donut_plot = 1
-test_dot_line_plot = 1
-test_function_plot = 1
-test_gantt_chart = 1
-test_pie_plot = 1
-test_themes = 1
+test_scatter_plot = 0
+test_donut_plot = 0
+test_dot_line_plot = 0
+test_function_plot = 0
+test_gantt_chart = 0
+test_pie_plot = 0
+test_themes = 0
 
 if test_vertical_bar_plot:
     #Passing a dictionary
@@ -43,6 +43,14 @@ if test_vertical_bar_plot:
     data = [[10*random.random()] for x in range(50)]
     x_labels = ["large label name oh my god it's big" for x in data]
     cairoplot.vertical_bar_plot ( 'vbar_9_large', data, 1000, 800, border = 20, grid = True, rounded_corners = True, x_labels = x_labels )
+    
+    #Stack vertical
+    data = [ [6, 4, 10], [8, 9, 3], [1, 10, 9], [2, 7, 11] ]
+    colors = [ (1,0.2,0), (1,0.7,0), (1,1,0) ]
+    x_labels = ["teste1", "teste2", "testegrande3", "testegrande4"]
+    cairoplot.vertical_bar_plot ( 'vbar_10_stack', data, 400, 300, border = 20, grid = True, rounded_corners = True, stack = True, 
+                                  x_labels = x_labels, colors = colors )
+
 
 if test_horizontal_bar_plot:
     #Passing a dictionary
@@ -69,11 +77,16 @@ if test_horizontal_bar_plot:
     cairoplot.horizontal_bar_plot ( 'hbar_8_hy_labels', data, 600, 200, border = 20, grid = True, x_labels = x_labels, y_labels = y_labels )
     
     #Large data set
-    data = [[10*random.random()] for x in range(50)]
+    data = [[10*random.random()] for x in range(25)]
     x_labels = ["large label name oh my god it's big" for x in data]
     cairoplot.horizontal_bar_plot ( 'hbar_9_large', data, 1000, 800, border = 20, grid = True, rounded_corners = True, x_labels = x_labels )
 
-
+    #Stack horizontal
+    data = [ [6, 4, 10], [8, 9, 3], [1, 10, 9], [2, 7, 11] ]
+    colors = [ (1,0.2,0), (1,0.7,0), (1,1,0) ]
+    y_labels = ["teste1", "teste2", "testegrande3", "testegrande4"]
+    cairoplot.horizontal_bar_plot ( 'hbar_10_stack', data, 400, 300, border = 20, grid = True, rounded_corners = True, stack = True, 
+                                    y_labels = y_labels, colors = colors )
 
 if test_donut_plot :
     #Define a new backgrond
@@ -195,7 +208,7 @@ if test_scatter_plot:
     
     
 if test_themes :    
-    data = [1,2,3,4,5,6,7,8,9,10,11,12,13,14]
+    data = [[1,2,3,4,5,6,7,8,9,10,11,12,13,14]]
     cairoplot.vertical_bar_plot ( 'bar_color_themes', data, 400, 300, border = 20, grid = True, colors="rainbow" )
     
     data = [ lambda x : 1, lambda y : y**2, lambda z : -z**2 ]
