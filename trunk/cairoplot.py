@@ -894,7 +894,6 @@ class BarPlot(Plot):
                 self.value_label = self.context.text_extents(str(max(sum(serie) for serie in self.data)))[2 + self.main_dir]
             else:
                 self.value_label = self.context.text_extents(str(max(max(serie) for serie in self.data)))[2 + self.main_dir]
-        print self.context.text_extents(str(max(max(serie) for serie in self.data)))
         if self.labels[self.main_dir]:
             self.plot_dimensions[self.main_dir] = self.dimensions[self.main_dir] - 2*self.borders[self.main_dir] - self.value_label
         else:
@@ -912,7 +911,6 @@ class BarPlot(Plot):
         series_length = len(self.data)
         self.steps[other_dir] = float(self.plot_dimensions[other_dir])/(series_length + 0.1*(series_length + 1))
         self.space = 0.1*self.steps[other_dir]
-
         
     def render(self):
         self.calc_all_extents()
@@ -927,6 +925,8 @@ class BarPlot(Plot):
             self.render_values()
         self.render_labels()
         self.render_plot()
+        if self.series_labels:
+            self.render_legend()
     
     def draw_3d_rectangle_front(self, x0, y0, x1, y1, shift):
         self.context.rectangle(x0-shift, y0+shift, x1-x0, y1-y0)
@@ -977,6 +977,53 @@ class BarPlot(Plot):
             self.render_horz_labels()
         if self.labels[VERT]:
             self.render_vert_labels()
+            
+    def render_legend(self):
+        cr = self.context
+        cr.set_font_size(self.font_size)
+        cr.set_line_width(self.line_width)
+
+        widest_word = max(self.series_labels, key = lambda item: self.context.text_extents(item)[2])
+        tallest_word = max(self.series_labels, key = lambda item: self.context.text_extents(item)[3])
+        max_width = self.context.text_extents(widest_word)[2]
+        max_height = self.context.text_extents(tallest_word)[3] * 1.1 + 5
+        
+        color_box_height = max_height / 2
+        color_box_width = color_box_height * 2
+        
+        #Draw a bounding box
+        bounding_box_width = max_width + color_box_width + 15
+        bounding_box_height = (len(self.series_labels)+0.5) * max_height
+        cr.set_source_rgba(1,1,1)
+        cr.rectangle(self.dimensions[HORZ] - self.border - bounding_box_width, self.border,
+                            bounding_box_width, bounding_box_height)
+        cr.fill()
+        
+        cr.set_source_rgba(*self.line_color)
+        cr.set_line_width(self.line_width)
+        cr.rectangle(self.dimensions[HORZ] - self.border - bounding_box_width, self.border,
+                            bounding_box_width, bounding_box_height)
+        cr.stroke()
+
+        for idx,key in enumerate(self.series_labels):
+            #Draw color box
+            cr.set_source_rgba(*self.series_colors[idx])
+            cr.rectangle(self.dimensions[HORZ] - self.border - max_width - color_box_width - 10, 
+                                self.border + color_box_height + (idx*max_height) ,
+                                color_box_width, color_box_height)
+            cr.fill()
+            
+            cr.set_source_rgba(0, 0, 0)
+            cr.rectangle(self.dimensions[HORZ] - self.border - max_width - color_box_width - 10, 
+                                self.border + color_box_height + (idx*max_height),
+                                color_box_width, color_box_height)
+            cr.stroke()
+            
+            #Draw series labels
+            cr.set_source_rgba(0, 0, 0)
+            cr.move_to(self.dimensions[HORZ] - self.border - max_width - 5, self.border + ((idx+1)*max_height))
+            cr.show_text(key)
+
 
 class HorizontalBarPlot(BarPlot):
     def __init__(self, 
@@ -986,6 +1033,7 @@ class HorizontalBarPlot(BarPlot):
                  height = 480,
                  background = "white light_gray",
                  border = 0,
+                 series_labels = False,
                  display_values = False,
                  grid = False,
                  rounded_corners = False,
@@ -1000,6 +1048,7 @@ class HorizontalBarPlot(BarPlot):
         BarPlot.__init__(self, surface, data, width, height, background, border, 
                          display_values, grid, rounded_corners, stack, three_dimension,
                          x_labels, y_labels, x_bounds, y_bounds, series_colors, HORZ)
+        self.series_labels = series_labels
 
     def calc_vert_extents(self):
         self.calc_extents(VERT)
@@ -1039,7 +1088,7 @@ class HorizontalBarPlot(BarPlot):
         self.context.set_source_rgba(0.8, 0.8, 0.8)
         if self.labels[HORZ]:
             self.context.set_font_size(self.font_size * 0.8)
-            step = (self.dimensions[HORZ] - 2*self.borders[HORZ])/(len(self.labels[HORZ])-1)
+            step = (self.dimensions[HORZ] - 2*self.borders[HORZ] - self.value_label)/(len(self.labels[HORZ])-1)
             x = self.borders[HORZ]
             next_x = 0
             for item in self.labels[HORZ]:
@@ -1153,6 +1202,7 @@ class VerticalBarPlot(BarPlot):
                  height = 480,
                  background = "white light_gray",
                  border = 0,
+                 series_labels = None,
                  display_values = False,
                  grid = False,
                  rounded_corners = False,
@@ -1167,6 +1217,7 @@ class VerticalBarPlot(BarPlot):
         BarPlot.__init__(self, surface, data, width, height, background, border, 
                          display_values, grid, rounded_corners, stack, three_dimension,
                          x_labels, y_labels, x_bounds, y_bounds, series_colors, VERT)
+        self.series_labels = series_labels
 
     def calc_vert_extents(self):
         self.calc_extents(VERT)
@@ -1248,8 +1299,8 @@ class VerticalBarPlot(BarPlot):
             
     def render_vert_labels(self):
         self.context.set_source_rgba(*self.label_color)
-        y = self.borders[VERT]
-        step = (self.dimensions[VERT] - 2*self.borders[VERT])/(len(self.labels[VERT]) - 1)
+        y = self.borders[VERT] + self.value_label
+        step = (self.dimensions[VERT] - 2*self.borders[VERT] - self.value_label)/(len(self.labels[VERT]) - 1)
         self.labels[VERT].reverse()
         for item in self.labels[VERT]:
             width, height = self.context.text_extents(item)[2:4]
@@ -1892,6 +1943,7 @@ def vertical_bar_plot(name,
                       height, 
                       background = "white light_gray", 
                       border = 0, 
+                      series_labels = None,
                       display_values = False,
                       grid = False,
                       rounded_corners = False,
@@ -1930,7 +1982,7 @@ def vertical_bar_plot(name,
         CairoPlot.vertical_bar_plot ('bar2', data, 400, 300, border = 20, grid = True, rounded_corners = False)
     '''
     
-    plot = VerticalBarPlot(name, data, width, height, background, border,
+    plot = VerticalBarPlot(name, data, width, height, background, border, series_labels,
                            display_values, grid, rounded_corners, stack, three_dimension, 
                            x_labels, y_labels, x_bounds, y_bounds, colors)
     plot.render()
@@ -1941,7 +1993,8 @@ def horizontal_bar_plot(name,
                        width, 
                        height, 
                        background = "white light_gray", 
-                       border = 0, 
+                       border = 0,
+                       series_labels = None,
                        display_values = False,
                        grid = False,
                        rounded_corners = False,
@@ -1981,7 +2034,7 @@ def horizontal_bar_plot(name,
         CairoPlot.bar_plot ('bar2', data, 400, 300, border = 20, grid = True, rounded_corners = False)
     '''
     
-    plot = HorizontalBarPlot(name, data, width, height, background, border,
+    plot = HorizontalBarPlot(name, data, width, height, background, border, series_labels,
                              display_values, grid, rounded_corners, stack, three_dimension, 
                              x_labels, y_labels, x_bounds, y_bounds, colors)
     plot.render()

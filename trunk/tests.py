@@ -26,9 +26,10 @@ if test_vertical_bar_plot:
     #Using default, rounded corners and 3D visualization
     data = [ [0, 3, 11], [8, 9, 21], [13, 10, 9], [2, 30, 8] ]
     colors = [ (1,0.2,0), (1,0.7,0), (1,1,0) ]
+    series_labels = ["red", "orange", "yellow"]
     cairoplot.vertical_bar_plot ( 'vbar_1_default', data, 400, 300, border = 20, grid = True, rounded_corners = False, colors = "yellow_orange_red" )
-    cairoplot.vertical_bar_plot ( 'vbar_2_rounded', data, 400, 300, border = 20, display_values = True, grid = True, rounded_corners = True, colors = colors )
-    cairoplot.vertical_bar_plot ( 'vbar_3_3D', data, 400, 300, border = 20, grid = True, three_dimension = True, colors = colors )
+    cairoplot.vertical_bar_plot ( 'vbar_2_rounded', data, 400, 300, border = 20, series_labels = series_labels, display_values = True, grid = True, rounded_corners = True, colors = colors )
+    cairoplot.vertical_bar_plot ( 'vbar_3_3D', data, 400, 300, border = 20, series_labels = series_labels, grid = True, three_dimension = True, colors = colors )
 
     #Mixing groups and columns
     data = [ [1], [2], [3,4], [4], [5], [6], [7], [8], [9], [10] ]
@@ -41,7 +42,7 @@ if test_vertical_bar_plot:
     cairoplot.vertical_bar_plot ( 'vbar_5_no_labels', data, 600, 200, border = 20, grid = True )
     cairoplot.vertical_bar_plot ( 'vbar_6_x_labels', data, 600, 200, border = 20, grid = True, x_labels = x_labels )
     cairoplot.vertical_bar_plot ( 'vbar_7_y_labels', data, 600, 200, border = 20, grid = True, y_labels = y_labels )
-    cairoplot.vertical_bar_plot ( 'vbar_8_hy_labels', data, 600, 200, border = 20, grid = True, x_labels = x_labels, y_labels = y_labels )
+    cairoplot.vertical_bar_plot ( 'vbar_8_hy_labels', data, 600, 200, border = 20, display_values = True, grid = True, x_labels = x_labels, y_labels = y_labels )
     
     #Large data set
     data = [[10*random.random()] for x in range(50)]
@@ -64,22 +65,25 @@ if test_horizontal_bar_plot:
     #Using default, rounded corners and 3D visualization
     data = [ [0, 3, 11], [8, 9, 21], [13, 10, 9], [2, 30, 8] ]
     colors = [ (1,0.2,0), (1,0.7,0), (1,1,0) ]
+    series_labels = ["red", "orange", "yellow"]
     cairoplot.horizontal_bar_plot ( 'hbar_1_default', data, 400, 300, border = 20, grid = True, rounded_corners = False, colors = "yellow_orange_red" )
-    cairoplot.horizontal_bar_plot ( 'hbar_2_rounded', data, 400, 300, border = 20, display_values = True, grid = True, rounded_corners = True, colors = colors )
+    cairoplot.horizontal_bar_plot ( 'hbar_2_rounded', data, 400, 300, border = 20, series_labels = series_labels, display_values = True, grid = True, rounded_corners = True, colors = colors )
+
 
     #Mixing groups and columns
     data = [ [1], [2], [3,4], [4], [5], [6], [7], [8], [9], [10] ]
     cairoplot.horizontal_bar_plot ( 'hbar_4_group', data, 400, 300, border = 20, grid = True )
 
     #Using no labels, horizontal and vertical labels
+    series_labels = ["data11", "data22"]
     data = [[3,4], [4,8], [5,3], [9,1]]
     x_labels = [ "line1", "line2", "line3", "line4", "line5", "line6" ]
     y_labels = [ "group1", "group2", "group3", "group4" ]
-    cairoplot.horizontal_bar_plot ( 'hbar_5_no_labels', data, 600, 200, border = 20, grid = True )
-    cairoplot.horizontal_bar_plot ( 'hbar_6_x_labels', data, 600, 200, border = 20, grid = True, x_labels = x_labels )
-    cairoplot.horizontal_bar_plot ( 'hbar_7_y_labels', data, 600, 200, border = 20, grid = True, y_labels = y_labels )
-    cairoplot.horizontal_bar_plot ( 'hbar_8_hy_labels', data, 600, 200, border = 20, display_values = True, grid = True, x_labels = x_labels, y_labels = y_labels )
-    
+    cairoplot.horizontal_bar_plot ( 'hbar_5_no_labels', data, 600, 200, border = 20, series_labels = series_labels, grid = True )
+    cairoplot.horizontal_bar_plot ( 'hbar_6_x_labels', data, 600, 200, border = 20, series_labels = series_labels, grid = True, x_labels = x_labels )
+    cairoplot.horizontal_bar_plot ( 'hbar_7_y_labels', data, 600, 200, border = 20, series_labels = series_labels, grid = True, y_labels = y_labels )
+    cairoplot.horizontal_bar_plot ( 'hbar_8_hy_labels', data, 600, 200, border = 20, series_labels = series_labels, display_values = True, grid = True, x_labels = x_labels, y_labels = y_labels )
+
     #Large data set
     data = [[10*random.random()] for x in range(25)]
     x_labels = ["large label name oh my god it's big" for x in data]

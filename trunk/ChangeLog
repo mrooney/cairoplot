@@ -8,7 +8,10 @@
         		 Furthermore, background=None now implies on
         		 transparent backgrounds;
         		Value labels above the bars are now possible through
-        		 the display_values attribute.
+        		 the display_values attribute;
+        		The series_labels parameter is now enabled for BarPlot
+        		 charts. Whenever it's present, a legend box is
+        		 plotted on the right upper corner.
 
 2009-03-09  Rodrigo Araújo <alf.rodrigo@gmail.com>
         * CairoPlot.py: BarPlot, HorizontalBarPlot and VerticalBarPlot revision
