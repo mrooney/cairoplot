@@ -6,7 +6,9 @@
         		 gradients using a string of colors like "red white"
         		 which would create a red-to-white gradient.
         		 Furthermore, background=None now implies on
-        		 transparent backgrounds.
+        		 transparent backgrounds;
+        		Value labels above the bars are now possible through
+        		 the display_values attribute.
 
 2009-03-09  Rodrigo Araújo <alf.rodrigo@gmail.com>
         * CairoPlot.py: BarPlot, HorizontalBarPlot and VerticalBarPlot revision

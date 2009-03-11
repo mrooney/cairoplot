@@ -815,6 +815,7 @@ class BarPlot(Plot):
                  height = 480,
                  background = "white light_gray",
                  border = 0,
+                 display_values = False,
                  grid = False,
                  rounded_corners = False,
                  stack = False,
@@ -829,15 +830,17 @@ class BarPlot(Plot):
         self.bounds = {}
         self.bounds[HORZ] = x_bounds
         self.bounds[VERT] = y_bounds
+        self.display_values = display_values
         self.grid = grid
         self.rounded_corners = rounded_corners
         self.stack = stack
         self.three_dimension = three_dimension
         self.x_label_angle = math.pi / 2.5
-        self.max_value = {}
         self.main_dir = main_dir
+        self.max_value = {}
         self.plot_dimensions = {}
         self.steps = {}
+        self.value_label_color = (0.5,0.5,0.5,1.0)
 
         Plot.__init__(self, surface, data, width, height, background, border, x_labels, y_labels, series_colors)
 
@@ -885,10 +888,17 @@ class BarPlot(Plot):
         self.calc_horz_extents()
         self.calc_vert_extents()
         other_dir = other_direction(self.main_dir)
+        self.value_label = 0
+        if self.display_values:
+            if self.stack:
+                self.value_label = self.context.text_extents(str(max(sum(serie) for serie in self.data)))[2 + self.main_dir]
+            else:
+                self.value_label = self.context.text_extents(str(max(max(serie) for serie in self.data)))[2 + self.main_dir]
+        print self.context.text_extents(str(max(max(serie) for serie in self.data)))
         if self.labels[self.main_dir]:
-            self.plot_dimensions[self.main_dir] = self.dimensions[self.main_dir] - 2*self.borders[self.main_dir]
+            self.plot_dimensions[self.main_dir] = self.dimensions[self.main_dir] - 2*self.borders[self.main_dir] - self.value_label
         else:
-            self.plot_dimensions[self.main_dir] = self.dimensions[self.main_dir] - self.borders[self.main_dir] - 1.2*self.border
+            self.plot_dimensions[self.main_dir] = self.dimensions[self.main_dir] - self.borders[self.main_dir] - 1.2*self.border - self.value_label
         self.plot_dimensions[other_dir] = self.dimensions[other_dir] - self.borders[other_dir] - self.border
         self.plot_top = self.dimensions[VERT] - self.borders[VERT]
 
@@ -913,6 +923,8 @@ class BarPlot(Plot):
             self.render_grid()
         if self.three_dimension:
             self.render_ground()
+        if self.display_values:
+            self.render_values()
         self.render_labels()
         self.render_plot()
     
@@ -934,6 +946,17 @@ class BarPlot(Plot):
         self.context.line_to(x1-shift, y0+shift)
         self.context.line_to(x0-shift, y0+shift)
         self.context.close_path()
+                
+    def draw_round_rectangle(self, x0, y0, x1, y1):
+        self.context.arc(x0+5, y0+5, 5, -math.pi, -math.pi/2)
+        self.context.line_to(x1-5, y0)
+        self.context.arc(x1-5, y0+5, 5, -math.pi/2, 0)
+        self.context.line_to(x1, y1-5)
+        self.context.arc(x1-5, y1-5, 5, 0, math.pi/2)
+        self.context.line_to(x0+5, y1)
+        self.context.arc(x0+5, y1-5, 5, math.pi/2, math.pi)
+        self.context.line_to(x0, y0+5)
+        self.context.close_path()
 
     def render_ground(self):
         self.draw_3d_rectangle_front(self.borders[HORZ], self.dimensions[VERT] - self.borders[VERT], 
@@ -954,17 +977,6 @@ class BarPlot(Plot):
             self.render_horz_labels()
         if self.labels[VERT]:
             self.render_vert_labels()
-        
-    def draw_round_rectangle(self, x0, y0, x1, y1):
-        self.context.arc(x0+5, y0+5, 5, -math.pi, -math.pi/2)
-        self.context.line_to(x1-5, y0)
-        self.context.arc(x1-5, y0+5, 5, -math.pi/2, 0)
-        self.context.line_to(x1, y1-5)
-        self.context.arc(x1-5, y1-5, 5, 0, math.pi/2)
-        self.context.line_to(x0+5, y1)
-        self.context.arc(x0+5, y1-5, 5, math.pi/2, math.pi)
-        self.context.line_to(x0, y0+5)
-        self.context.close_path()
 
 class HorizontalBarPlot(BarPlot):
     def __init__(self, 
@@ -974,6 +986,7 @@ class HorizontalBarPlot(BarPlot):
                  height = 480,
                  background = "white light_gray",
                  border = 0,
+                 display_values = False,
                  grid = False,
                  rounded_corners = False,
                  stack = False,
@@ -985,7 +998,7 @@ class HorizontalBarPlot(BarPlot):
                  series_colors = None):
 
         BarPlot.__init__(self, surface, data, width, height, background, border, 
-                         grid, rounded_corners, stack, three_dimension,
+                         display_values, grid, rounded_corners, stack, three_dimension,
                          x_labels, y_labels, x_bounds, y_bounds, series_colors, HORZ)
 
     def calc_vert_extents(self):
@@ -1074,6 +1087,27 @@ class HorizontalBarPlot(BarPlot):
             y += step + self.space
         self.labels[VERT].reverse()
 
+    def render_values(self):
+        self.context.set_source_rgba(*self.value_label_color)
+        self.context.set_font_size(self.font_size * 0.8)
+        if self.stack:
+            for i,series in enumerate(self.data):
+                value = sum(series)
+                height = self.context.text_extents(str(value))[3]
+                x = self.borders[HORZ] + value*self.steps[HORZ] + 2
+                y = self.borders[VERT] + (i+0.5)*self.steps[VERT] + (i+1)*self.space + height/2
+                self.context.move_to(x, y)
+                self.context.show_text(str(value))
+        else:
+            for i,series in enumerate(self.data):
+                inner_step = self.steps[VERT]/len(series)
+                y0 = self.border + i*self.steps[VERT] + (i+1)*self.space
+                for number,key in enumerate(series):
+                    height = self.context.text_extents(str(key))[3]
+                    self.context.move_to(self.borders[HORZ] + key*self.steps[HORZ] + 2, y0 + 0.5*inner_step + height/2, )
+                    self.context.show_text(str(key))
+                    y0 += inner_step
+
     def render_plot(self):
         if self.stack:
             for i,series in enumerate(self.data):
@@ -1119,6 +1153,7 @@ class VerticalBarPlot(BarPlot):
                  height = 480,
                  background = "white light_gray",
                  border = 0,
+                 display_values = False,
                  grid = False,
                  rounded_corners = False,
                  stack = False,
@@ -1130,7 +1165,7 @@ class VerticalBarPlot(BarPlot):
                  series_colors = None):
 
         BarPlot.__init__(self, surface, data, width, height, background, border, 
-                         grid, rounded_corners, stack, three_dimension,
+                         display_values, grid, rounded_corners, stack, three_dimension,
                          x_labels, y_labels, x_bounds, y_bounds, series_colors, VERT)
 
     def calc_vert_extents(self):
@@ -1172,11 +1207,11 @@ class VerticalBarPlot(BarPlot):
         if self.labels[VERT]:
             lines = len(self.labels[VERT])
             vertical_step = float(self.plot_dimensions[self.main_dir])/(lines-1)
-            y = self.borders[VERT]
+            y = self.borders[VERT] + self.value_label
         else:
             lines = 11
             vertical_step = float(self.plot_dimensions[self.main_dir])/(lines-1)
-            y = 1.2*self.border
+            y = 1.2*self.border + self.value_label
         for x in xrange(0, lines):
             self.context.move_to(self.borders[HORZ], y)
             self.context.line_to(self.dimensions[HORZ] - self.border, y)
@@ -1212,17 +1247,37 @@ class VerticalBarPlot(BarPlot):
             x += step + self.space
             
     def render_vert_labels(self):
+        self.context.set_source_rgba(*self.label_color)
         y = self.borders[VERT]
         step = (self.dimensions[VERT] - 2*self.borders[VERT])/(len(self.labels[VERT]) - 1)
-
         self.labels[VERT].reverse()
         for item in self.labels[VERT]:
-            self.context.set_source_rgba(*self.label_color)
             width, height = self.context.text_extents(item)[2:4]
             self.context.move_to(self.borders[HORZ] - width - 5, y + height/2)
             self.context.show_text(item)
             y += step
         self.labels[VERT].reverse()
+
+    def render_values(self):
+        self.context.set_source_rgba(*self.value_label_color)
+        self.context.set_font_size(self.font_size * 0.8)
+        if self.stack:
+            for i,series in enumerate(self.data):
+                value = sum(series)
+                width = self.context.text_extents(str(value))[2]
+                x = self.borders[HORZ] + (i+0.5)*self.steps[HORZ] + (i+1)*self.space - width/2
+                y = value*self.steps[VERT] + 2
+                self.context.move_to(x, self.plot_top-y)
+                self.context.show_text(str(value))
+        else:
+            for i,series in enumerate(self.data):
+                inner_step = self.steps[HORZ]/len(series)
+                x0 = self.borders[HORZ] + i*self.steps[HORZ] + (i+1)*self.space
+                for number,key in enumerate(series):
+                    width = self.context.text_extents(str(key))[2]
+                    self.context.move_to(x0 + 0.5*inner_step - width/2, self.plot_top - key*self.steps[VERT] - 2)
+                    self.context.show_text(str(key))
+                    x0 += inner_step
 
     def render_plot(self):
         if self.stack:
@@ -1837,6 +1892,7 @@ def vertical_bar_plot(name,
                       height, 
                       background = "white light_gray", 
                       border = 0, 
+                      display_values = False,
                       grid = False,
                       rounded_corners = False,
                       stack = False,
@@ -1875,7 +1931,7 @@ def vertical_bar_plot(name,
     '''
     
     plot = VerticalBarPlot(name, data, width, height, background, border,
-                           grid, rounded_corners, stack, three_dimension, 
+                           display_values, grid, rounded_corners, stack, three_dimension, 
                            x_labels, y_labels, x_bounds, y_bounds, colors)
     plot.render()
     plot.commit()
@@ -1886,6 +1942,7 @@ def horizontal_bar_plot(name,
                        height, 
                        background = "white light_gray", 
                        border = 0, 
+                       display_values = False,
                        grid = False,
                        rounded_corners = False,
                        stack = False,
@@ -1925,7 +1982,7 @@ def horizontal_bar_plot(name,
     '''
     
     plot = HorizontalBarPlot(name, data, width, height, background, border,
-                             grid, rounded_corners, stack, three_dimension, 
+                             display_values, grid, rounded_corners, stack, three_dimension, 
                              x_labels, y_labels, x_bounds, y_bounds, colors)
     plot.render()
     plot.commit()
