@@ -28,6 +28,8 @@
 #   Update: adde this feature using the CairoPlot class
 #
 #TODO: Test the basics of CairoPlot class
+#
+#TODO: Change range to float
 
 from Series import Serie, Group, Data, LISTTYPES, NUMTYPES, STRTYPES
 
@@ -170,10 +172,11 @@ class Plot(object):
                 self.series_labels.append(group.name)
             elif len(self.series_labels) > 0:
                 self.series_labels.append('_'+str(data.group_list.index(group)))
-            #self.data.append(group.toList())
-
-        if self.data[0][0].type in LISTTYPES and len(self.series_labels) is 0:
+        
+        if self.data[0][0].type is list and len(self.series_labels) is 0:
             self.series_labels = range(len(self.data))
+            
+            
         self.series_widths = [1.0 for series in self.data]
         self.process_colors( series_colors )
         
@@ -495,7 +498,7 @@ class ScatterPlot( Plot ):
         cr = self.context
         cr.set_font_size(self.font_size)
         cr.set_line_width(self.line_width)
-
+        
         widest_word = max(self.series_labels, key = lambda item: self.context.text_extents(item)[2])
         tallest_word = max(self.series_labels, key = lambda item: self.context.text_extents(item)[3])
         max_width = self.context.text_extents(widest_word)[2]
@@ -582,7 +585,7 @@ class ScatterPlot( Plot ):
     def render_plot(self):
         cr = self.context
         if self.discrete:
-            exit()
+            #exit()
             cr.rectangle(self.borders[HORZ], self.borders[VERT], self.plot_width, self.plot_height)
             cr.clip()
             x0 = self.borders[HORZ] - self.bounds[HORZ][0]*self.horizontal_step
@@ -600,7 +603,7 @@ class ScatterPlot( Plot ):
                     cr.arc(x, self.dimensions[VERT] - y, radius, 0, 2*math.pi)
                     cr.fill()
         else:
-            exit()
+            #exit()
             cr.rectangle(self.borders[HORZ], self.borders[VERT], self.plot_width, self.plot_height)
             cr.clip()
             x0 = self.borders[HORZ] - self.bounds[HORZ][0]*self.horizontal_step
@@ -1077,16 +1080,104 @@ def gantt_chart(name, pieces, width, height, y_labels, colors):
     
 class CairoPlot(object):
     def __init__(self, serie=None):
-        self.serie = None
+        self.__serie = None
+        self.__range = None
         if serie is not None:
-            self.serie = Serie(serie)
+            self.serie = serie
         
         # Create fsets for this properties
         self.x_labels = None
         self.y_labels = None
         self.x_title = None
         self.y_title = None
-        self.x_range = None
+        self.colors = None
+        self.background = None
+        self.errorx = None
+        self.errory = None
+        
+        # Flags
+        self.axis = False
+        self.grid = False
+        self.dots = False
+        self.series_legend=True
+        self.dash = False
+        
+    @apply
+    def serie():
+        def fget(self):
+            return self.__serie
+
+        def fset(self, serie):
+            if isinstance(serie, Serie):
+                self.__serie = serie
+            elif type(serie) is list and callable(serie[0]):
+                if self.range is None:
+                    raise Exception, "Must set a valid range before assingning a function"
+                self.__serie = Serie()
+                for item in serie:
+                    g = Group()
+                    g.x_range = self.range[:]
+                    g.data_list = item
+                    self.__serie.add_group(g)
+                
+            elif type(serie) is dict and callable(serie.values()[0]):
+                if self.range is None:
+                    raise Exception, "Must set a valid range before assingning a function"
+                
+                self.__serie = Serie()
+                keys = serie.keys()
+                keys.sort()
+                for name in keys:
+                    g = Group(name=name)
+                    g.x_range = self.range[:]
+                    g.data_list = serie[name]
+                    self.__serie.add_group(g)
+                
+            else:
+                self.__serie = Serie(serie)
+                
+        return property(**locals())
+    
+    @apply
+    def range():
+        def fget(self):
+            return self.__range
+        
+        def fset(self, x_range):
+            if type(x_range) is list and len(x_range) > 0:
+                self.__range = x_range[:]
+                return
+            
+            elif type(x_range) is tuple and len(x_range) in (2,3):
+                step = 1
+                start = x_range[0]
+                end = x_range[-1]
+                if len(x_range) is 3:
+                    step = x_range[1]
+                    
+                if float in [type(start), type(end), type(step)]:
+                    start = float(start)
+                    end = float(end)
+                    step = float(step)
+                
+                self.__range = [start]
+                while True:
+                    start = start + step
+                    if start > end:
+                        break
+                    self.__range.append(start)
+            else:
+                raise Exception, "x_range must be a list with one or more item or a tuple with 2 or 3 items"
+            
+        return property(**locals())
+    
+    def DefaultProperties(self):
+        # Create fsets for this properties
+        self.x_labels = None
+        self.y_labels = None
+        self.x_title = None
+        self.y_title = None
+        self.__range = None
         self.colors = None
         self.background = None
         self.errorx = None
