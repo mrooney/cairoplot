@@ -25,6 +25,9 @@
 # Contributor: Magnun Leno da Silva <magnun.leno@gmail.com>
 
 #TODO: Add the x_lables and y_labels to the Series structure
+#   Update: adde this feature using the CairoPlot class
+#
+#TODO: Test the basics of CairoPlot class
 
 from Series import Serie, Group, Data, LISTTYPES, NUMTYPES, STRTYPES
 
@@ -1070,3 +1073,93 @@ def gantt_chart(name, pieces, width, height, y_labels, colors):
     plot = GanttChart(name, pieces, width, height, y_labels, colors)
     plot.render()
     plot.commit()
+    
+    
+class CairoPlot(object):
+    def __init__(self, serie=None):
+        self.serie = None
+        if serie is not None:
+            self.serie = Serie(serie)
+        
+        # Create fsets for this properties
+        self.x_labels = None
+        self.y_labels = None
+        self.x_title = None
+        self.y_title = None
+        self.x_range = None
+        self.colors = None
+        self.background = None
+        self.errorx = None
+        self.errory = None
+        
+        # Flags
+        self.axis = False
+        self.grid = False
+        self.dots = False
+        self.series_legend=True
+        self.dash = False
+        
+    def PlotScatter(self,
+                    name,
+                    #data   = None,
+                    #errorx = None,
+                    #errory = None,
+                    width  = 640,
+                    height = 480,
+                    #background = None,
+                    border = 0,
+                    #axis = False,
+                    #dash = False,
+                    discrete = False, 
+                    #dots = False,
+                    #grid = False,
+                    #series_legend = False,
+                    #x_labels = None,
+                    #y_labels = None,
+                    x_bounds = None,
+                    y_bounds = None,
+                    z_bounds = None,
+                    #x_title  = None,
+                    #y_title  = None,
+                    series_colors = None,
+                    circle_colors = None):
+        
+        plot = ScatterPlot(name, self.serie, self.errorx, self.errory, width, height,
+                           self.background, border, self.axis, self.dash, discrete, self.dots,
+                           self.grid, self.series_legend, self.x_labels, self.y_labels,
+                           x_bounds, y_bounds, z_bounds, self.x_title, self.y_title,
+                           series_colors, circle_colors)
+        plot.render()
+        plot.commit()
+    
+    def PlotDotLine(self,
+                    name,
+                    #data,
+                    width,
+                    height,
+                    #background = None,
+                    border = 0,
+                    #axis = False,
+                    #dash = False,
+                    #dots = False,
+                    #grid = False,
+                    #series_legend = False,
+                    #x_labels = None,
+                    #y_labels = None,
+                    x_bounds = None,
+                    y_bounds = None,
+                    #x_title  = None,
+                    #y_title  = None,
+                    series_colors = None):
+        
+        plot = DotLinePlot(name, self.serie, width, height, self.background, border,
+                           self.axis, self.dash, self.dots, self.grid, self.series_legend,
+                           self.x_labels, self.y_labels, x_bounds, y_bounds, self.x_title,
+                           self.y_title, series_colors)
+        plot.render()
+        plot.commit()
+    
+    def PlotGanttChart(self, name, width, heigth):
+        plot = GanttChart(name, self.serie, width, height, self.y_labels, self.colors)
+        plot.render()
+        plot.commit()
