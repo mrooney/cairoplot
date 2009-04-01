@@ -28,6 +28,7 @@
 #TODO: Sort the when using dict
 
 import cairoplot
+import doctest
 
 NUMTYPES = (int, float, long)
 LISTTYPES = (list, tuple)
@@ -35,115 +36,193 @@ STRTYPES = (str, unicode)
 
 class Data(object):
     '''
-        Class that models the main data structure
+        Class that models the main data structure.
+        It can hold:
+         - a number type (int, float or long)
+         - a tuple, witch represents a point and can have 2 or 3 items (x,y,z)
+         - if passed a list it will be converted to a tuple.
+         
+        obs: In case is passed a tuple it will convert to tuple
     '''
-    def __init__(self, data=None, name=None):
+    def __init__(self, data=None, name=None, parent=None):
         '''
             Starts main atributes from the Data class
-            @name - Possible name for each point
-            @data - The real data, can be an int, float or tuple, which represents
-                        a point (x,y)
-            @type - variable that holds the type of data
+            @name    - Name for each point;
+            @content - The real data, can be an int, float, long or tuple, which
+                        represents a point (x,y,z);
+            @parent  - A pointer that give the data access to it's parent.
+            
+            Usage:
+            >>> d = Data(name='empty'); print d
+            empty: ()
+            >>> d = Data((1,1),'point a'); print d
+            point a: (1, 1)
+            >>> d = Data((1,2,3),'point b'); print d
+            point b: (1, 2, 3)
+            >>> d = Data([2,3],'point c'); print d
+            point c: (2, 3)
+            >>> d = Data(12, 'simple value'); print d
+            simple value: 12
         '''
+        # Initial values
         self.__content = None
         self.__name = None
-        self.type = None
-        self.parent = None
         
+        # Setting passed values
+        self.parent = parent
         self.name = name
         self.content = data
-
-    # Data property
-    @apply
-    def content():
-        def fget(self):
-            return self.__content
-
-        def fset(self, data):
-            '''
-                Ensures that data is a valid tuple/list or a number (float or int)
-            '''
-            # Type: None
-            if data is None:
-                self.__content = None
-                self.type = None
-                return
-
-            # Type: List or Tuple
-            elif type(data) in LISTTYPES:
-                # Ensures the correct size
-                if len(data) is not 2 and len(data) is not 3:
-                    raise TypeError, "Data (as list/tuple) must have 2 or 3 items"
-                    return
-                # Ensures thet all items in list/tuple is a number
-                isnum = lambda x : type(x) in NUMTYPES
-                ret = map(isnum, data)
-                if False in ret:
-                    # An item in data isn't an int or a float
-                    raise TypeError, "All content of data must be a number (int or float)"
-                    return
-                # Convert the tuple to list
-                if type(data) is list:
-                    data = tuple(data)
-                # Append a copy and sets the type
-                self.__content = data[:]
-                self.type = tuple
-
-            # Type: Int or Float
-            elif type(data) in NUMTYPES:
-                self.__content = data
-                self.type = type(data)
-    
-            else:
-                self.type = None
-                self.__content = None
-                raise TypeError, "Data must be an int, float or a tuple with two or three items"
-                return
-
-        return property(**locals())
-
-    
+        
     # Name property
     @apply
     def name():
+        doc = '''
+            Name is a read/write property that controls the input of name.
+             - If passed an invalid value it cleans the name with None
+             
+            Usage:
+            >>> d = Data(13); d.name = 'name_test'; print d
+            name_test: 13
+            >>> d.name = 11; print d
+            13
+            >>> d.name = 'other_name'; print d
+            other_name: 13
+            >>> d.name = None; print d
+            13
+            >>> d.name = 'last_name'; print d
+            last_name: 13
+            >>> d.name = ''; print d
+            13
+        '''
         def fget(self):
+            '''
+                returns the name as a string
+            '''
             return self.__name
-
+        
         def fset(self, name):
             '''
-                Ensures that data is a valid tuple/list or a number (float or int)
+                Sets the name of the Data
             '''
             if type(name) in STRTYPES and len(name) > 0:
                 self.__name = name
             else:
-                name = None
+                self.__name = None
+                
+        
+        
+        return property(**locals())
 
+    # Content property
+    @apply
+    def content():
+        doc = '''
+            Content is a read/write property that validate the data passed
+            and return it.
+            
+            Usage:
+            >>> d = Data(); d.content = 13; d.content
+            13
+            >>> d = Data(); d.content = (1,2); d.content
+            (1, 2)
+            >>> d = Data(); d.content = (1,2,3); d.content
+            (1, 2, 3)
+            >>> d = Data(); d.content = [1,2,3]; d.content
+            (1, 2, 3)
+            >>> d = Data(); d.content = [1.5,.2,3.3]; d.content
+            (1.5, 0.20000000000000001, 3.2999999999999998)
+        '''
+        def fget(self):
+            '''
+                Return the content of Data
+            '''
+            return self.__content
+
+        def fset(self, data):
+            '''
+                Ensures that data is a valid tuple/list or a number (int, float
+                or long)
+            '''
+            # Type: None
+            if data is None:
+                self.__content = None
+                return
+            
+            # Type: Int or Float
+            elif type(data) in NUMTYPES:
+                self.__content = data
+            
+            # Type: List or Tuple
+            elif type(data) in LISTTYPES:
+                # Ensures the correct size
+                if len(data) not in (2, 3):
+                    raise TypeError, "Data (as list/tuple) must have 2 or 3 items"
+                    return
+                    
+                # Ensures that all items in list/tuple is a number
+                isnum = lambda x : type(x) not in NUMTYPES
+                    
+                if max(map(isnum, data)):
+                    # An item in data isn't an int or a float
+                    raise TypeError, "All content of data must be a number (int or float)"
+                    
+                # Convert the tuple to list
+                if type(data) is list:
+                    data = tuple(data)
+                    
+                # Append a copy and sets the type
+                self.__content = data[:]
+            
+            # Unknown type!
+            else:
+                self.__content = None
+                raise TypeError, "Data must be an int, float or a tuple with two or three items"
+                return
+            
         return property(**locals())
 
     
-    
     def clear(self):
         '''
-            Clear the content of Data
+            Clear the all Data (content, name and parent)
         '''
         self.content = None
         self.name = None
-        self.type = None
+        self.parent = None
         
     def copy(self):
+        '''
+            Returns a copy of the Data structure
+        '''
+        # The copy
         new_data = Data()
         if self.content is not None:
+            # If content is a point
             if type(self.content) is tuple:
                 new_data.__content = self.content[:]
+                
+            # If content is a number
             else:
                 new_data.__content = self.content
+                
+        # If it has a name
         if self.name is not None:
             new_data.__name = self.name
-        new_data.type = self.type
-        new_data.parent = self.parent
+            
         return new_data
-        
+    
+    def index(self):
+        '''
+            Return the index of Data in the list of it's parent.
+        '''
+        if not isinstance(self.parent, Group):
+            raise Exception, "Must set the parent first"
+        return self.parent.data_list.index(self)
+    
     def __str__(self):
+        '''
+            Return a string representation of the Data structure
+        '''
         if self.name is None:
             if self.content is None:
                 return ''
@@ -154,67 +233,195 @@ class Data(object):
             return self.name+": "+str(self.content)
 
     def __len__(self):
+        '''
+            Return the length of the Data.
+             - If it's a number return 1;
+             - If it's a list return it's length;
+             - If its None return 0.
+        '''
         if self.content is None:
             return 0
         elif type(self.content) in NUMTYPES:
             return 1
         return len(self.content)
     
+    
+    
 
 class Group(object):
     '''
-        Class that moodels a group of data.
+        Class that moodels a group of data. Every value (int, float, long, tuple
+        or list) passed is converted to a list of Data.
+        It can receive:
+         - A single number (int, float, long);
+         - A list of numbers;
+         - A tuple of numbers;
+         - An instance of Data;
+         - A list of Data;
+         
+         Obs: If a tuple with 2 or 3 items is passed it is converted to a point.
+              If a tuple with only 1 item is passed it's converted to a number;
+              If a tuple with more then 2 items is passed it's converted to a
+               list of numbers
     '''
-    def __init__(self, group=None, name=None):
+    def __init__(self, group=None, name=None, parent=None):
+        '''
+            Starts main atributes in Group instance.
+            @data_list  - a list of data witch compound the group;
+            @range      - a range that represent the x axis of possible functions;
+            @name       - name of the grouping of data;
+            @parent     - the Serie parent of this group.
+            
+            Usage:
+            >>> g = Group(13, 'simple number'); print g
+            simple number ['13']
+            >>> g = Group((1,2), 'simple point'); print g
+            simple point ['(1, 2)']
+            >>> g = Group([1,2,3,4], 'list of numbers'); print g
+            list of numbers ['1', '2', '3', '4']
+            >>> g = Group((1,2,3,4),'int in tuple'); print g
+            int in tuple ['1', '2', '3', '4']
+            >>> g = Group([(1,2),(2,3),(3,4)], 'list of points'); print g
+            list of points ['(1, 2)', '(2, 3)', '(3, 4)']
+            >>> g = Group([[1,2,3],[1,2,3]], '2D coordinated lists'); print g
+            2D coordinated lists ['(1, 1)', '(2, 2)', '(3, 3)']
+            >>> g = Group([[1,2],[1,2],[1,2]], '3D coordinated lists'); print g
+            3D coordinated lists ['(1, 1, 1)', '(2, 2, 2)']
+        '''
+        # Initial values
         self.__data_list = []
-        self.__x_range = []
-        self.parent = None
+        self.__range = []
         self.__name = None
         
+        
+        self.parent = parent
         self.name = name
-        if group is not None:
-            self.data_list = group
+        self.data_list = group
         
     # Name property
     @apply
     def name():
+        doc = '''
+            Name is a read/write property that controls the input of name.
+             - If passed an invalid value it cleans the name with None
+             
+            Usage:
+            >>> g = Group(13); g.name = 'name_test'; print g
+            name_test ['13']
+            >>> g.name = 11; print g
+            ['13']
+            >>> g.name = 'other_name'; print g
+            other_name ['13']
+            >>> g.name = None; print g
+            ['13']
+            >>> g.name = 'last_name'; print g
+            last_name ['13']
+            >>> g.name = ''; print g
+            ['13']
+        '''
         def fget(self):
+            '''
+                Returns the name as a string
+            '''
             return self.__name
-
+        
         def fset(self, name):
             '''
-                Ensures that data is a valid tuple/list or a number (float or int)
+                Sets the name of the Group
             '''
             if type(name) in STRTYPES and len(name) > 0:
                 self.__name = name
             else:
-                name = None
-
+                self.__name = None
+        
         return property(**locals())
 
-    # Group property
+    # data_list property
     @apply
     def data_list():
+        doc = '''
+            The data_list is a read/write property that can be a list of
+            numbers, a list of points or a list of coordinated lists. This
+            property use mainly the self.add_data method.
+            
+            Usage:
+            >>> g = Group(); g.data_list = 13; print g
+            ['13']
+            >>> g.data_list = (1,2); print g
+            ['(1, 2)']
+            >>> g.data_list = Data((1,2),'point a'); print g
+            ['point a: (1, 2)']
+            >>> g.data_list = [1,2,3]; print g
+            ['1', '2', '3']
+            >>> g.data_list = (1,2,3,4); print g
+            ['1', '2', '3', '4']
+            >>> g.data_list = [(1,2),(2,3),(3,4)]; print g
+            ['(1, 2)', '(2, 3)', '(3, 4)']
+            >>> g.data_list = [[1,2],[1,2]]; print g
+            ['(1, 1)', '(2, 2)']
+            >>> g.data_list = [[1,2],[1,2],[1,2]]; print g
+            ['(1, 1, 1)', '(2, 2, 2)']
+            >>> g.range = (10); g.data_list = lambda x:x**2; print g
+            ['0.0', '1.0', '4.0', '9.0', '16.0', '25.0', '36.0', '49.0', '64.0', '81.0']
+        '''
         def fget(self):
-            return tuple(self.__data_list)
+            '''
+                Returns the value of data_list
+            '''
+            return self.__data_list
 
         def fset(self, group):
             '''
-                Set the group data.
-                If any data is a list, passes the data and the next value, as these are coordinates list.
+                Ensures that group is valid.
             '''
+            # None
+            if group is None:
+                self.__data_list = []
+            
+            # Int/float/long or Instance of Data
+            elif type(group) in NUMTYPES or isinstance(group, Data):
+                # Clean data_list
+                self.__data_list = []
+                self.add_data(group)
+            
+            # One point
+            elif type(group) is tuple and len(group) in (2,3):
+                self.__data_list = []
+                self.add_data(group)
+            
+            # list of items
+            elif type(group) in LISTTYPES and type(group[0]) is not list:
+                # Clean data_list
+                self.__data_list = []
+                for item in group:
+                    # try to append and catch an exception
+                    self.add_data(item)
+            
             # function lambda
-            if callable(group):
-                if len(self.__x_range) is 0:
-                    # x_data don't exist
-                    raise Exception, "Data argument is valid but to use function type please set x_range first"
-                else:
+            elif callable(group):
+                # Have range
+                if len(self.range) is not 0:
                     # Clean data_list
                     self.__data_list = []
                     # Generate values for the lambda function
-                    for x in self.__x_range:
+                    for x in self.range:
                         self.add_data(group(x))
                         
+                # Only have range in parent
+                elif self.parent is not None and len(self.parent.range) is not 0:
+                    # Copy parent range
+                    self.__range = self.parent.range[:]
+                    # Clean data_list
+                    self.__data_list = []
+                    # Generate values for the lambda function
+                    for x in self.range:
+                        self.add_data(group(x))
+                        
+                # Don't have range anywhere
+                else:
+                    # x_data don't exist
+                    raise Exception, "Data argument is valid but to use function type please set x_range first"
+                
             # Coordinated Lists
             elif type(group) in LISTTYPES and type(group[0]) is list:
                 # Clean data_list
@@ -226,161 +433,454 @@ class Group(object):
                     data = [ (group[0][i], group[1][i]) for i in range(len(group[0])) ]
                 else:
                     raise TypeError, "Only one list of coordinates was received."
-                    return
+                
                 for item in data:
                     self.add_data(item)
-            
-            # point
-            elif type(group) is tuple and 2 <= len(group) <= 3:
-                self.__data_list = []
-                self.add_data(group)
                 
-            # list of items
-            elif type(group) in LISTTYPES:
-                # Clean data_list
-                self.__data_list = []
-                for item in group:
-                    # try to append and catch an exception
-                    try:
-                        self.add_data(item)
-                    except:
-                        raise TypeError, "One of the contents of group isn't an instance of Data"
-                        self.__data_list = []
-                        return
-            # Int/Float
-            elif type(group) in NUMTYPES:
-                # Clean data_list
-                self.__data_list = []
-                try:
-                    self.add_data(group)
-                except:
-                    raise TypeError, "One of the contents of group isn't an instance of Data"
-                    self.__data_list = []
-                    return
-            # Instance of Data
-            elif isinstance(group, Data):
-                self.__data_list = []
-                self.add_data(group)
             else:
                 raise TypeError, "Group type not supported"
 
         return property(**locals())
 
+    @apply
+    def range():
+        doc = '''
+            The range is a read/write property that generates a range of values
+            for the x axis of the functions. When passed a tuple it works just
+            like the buil-in range funtion:
+             - 1 item, represent the end of the range started from 0;
+             - 2 items, represents the start and the end, respectively;
+             - 3 items, the last one represents the step;
+             
+            When passed a list the range function understands as a valid range.
+            
+            Usage:
+            >>> g = Group(); g.range = 10; print g.range
+            [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]
+            >>> g = Group(); g.range = (5); print g.range
+            [0.0, 1.0, 2.0, 3.0, 4.0]
+            >>> g = Group(); g.range = (1,7); print g.range
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+            >>> g = Group(); g.range = (0,10,2); print g.range
+            [0.0, 2.0, 4.0, 6.0, 8.0]
+            >>>
+            >>> g = Group(); g.range = [0]; print g.range
+            [0.0]
+            >>> g = Group(); g.range = [0,10,20]; print g.range
+            [0.0, 10.0, 20.0]
+        '''
+        def fget(self):
+            '''
+                Returns the range
+            '''
+            return self.__range
+        
+        def fset(self, x_range):
+            '''
+                Controls the input of a valid type and generate the range
+            '''
+            # if passed a simple number convert to tuple
+            if type(x_range) in NUMTYPES:
+                x_range = (x_range,)
+            
+            # A list, just convert to float
+            if type(x_range) is list and len(x_range) > 0:
+                # Convert all to float
+                x_range = map(float, x_range)
+                # Prevents repeated values and convert back to list
+                self.__range = list(set(x_range[:]))
+                # Sort the list to ascending order
+                self.__range.sort()
+            
+            # A tuple, must check the lengths and generate the values
+            elif type(x_range) is tuple and len(x_range) in (1,2,3):
+                # Convert all to float
+                x_range = map(float, x_range)
+                
+                # Inital values
+                start = 0.0
+                step = 1.0
+                end = 0.0
+                
+                # Only the end and it can't be less or iqual to 0
+                if len(x_range) is 1 and x_range > 0:
+                        end = x_range[0]
+                
+                # The start and the end but the start must be lesser then the end
+                elif len(x_range) is 2 and x_range[0] < x_range[1]:
+                        start = x_range[0]
+                        end = x_range[1]
+                
+                # All 3, but the start must be lesser then the end
+                elif x_range[0] < x_range[1]:
+                        start = x_range[0]
+                        end = x_range[1]
+                        step = x_range[2]
+                
+                # Starts the range
+                self.__range = []
+                # Generate the range
+                # Cnat use the range function becouse it don't suport float values
+                while start < end:
+                    self.__range.append(start)
+                    start += step
+                
+            # Incorrect type
+            else:
+                raise Exception, "x_range must be a list with one or more item or a tuple with 2 or 3 items"
+        
+        return property(**locals())
 
     def add_data(self, data, name=None):
         '''
             Append a new data to the data_list.
-            If data is an instance of Data, append it
-            If it's an int, float, tuple or list create an instance of Data and append it
+             - If data is an instance of Data, append it
+             - If it's an int, float, tuple or list create an instance of Data and append it
+            
+            Usage:
+            >>> g = Group()
+            >>> g.add_data(12); print g
+            ['12']
+            >>> g.add_data(7,'other'); print g
+            ['12', 'other: 7']
+            >>>
+            >>> g = Group()
+            >>> g.add_data((1,1),'a'); print g
+            ['a: (1, 1)']
+            >>> g.add_data((2,2),'b'); print g
+            ['a: (1, 1)', 'b: (2, 2)']
+            >>> 
+            >>> g.add_data(Data((1,2),'c')); print g
+            ['a: (1, 1)', 'b: (2, 2)', 'c: (1, 2)']
         '''
         if not isinstance(data, Data):
             # Try to convert
-            data = Data(data,name)
-            
+            data = Data(data,name,self)
+        
         if data.content is not None:
             self.__data_list.append(data.copy())
             self.__data_list[-1].parent = self
         
-    
-    def _get_x_range(self):
-        return str(self.__x_range)
-        
-    def _set_x_range(self, x_range):
-        '''
-            Sets the x_data in case it is necessary
-            @range - Can be a list of 2 elements [start, end] or a range
-            @step - Used if the arg range has only 2 elements. It is used to create the x_range
-        '''
-        if type(x_range) is list and len(x_range) > 0:
-            self.__x_range = x_range[:]
-            return
-        
-        elif type(x_range) is tuple and len(x_range) in (2,3):
-            step = 1
-            start = x_range[0]
-            end = x_range[-1]
-            if len(x_range) is 3:
-                step = x_range[1]
-                
-            if float in [type(start), type(end), type(step)]:
-                start = float(start)
-                end = float(end)
-                step = float(step)
-            
-            self.__x_range = [start]
-            while True:
-                start = start + step
-                if start > end:
-                    break
-                self.__x_range.append(start)
-        else:
-            raise Exception, "x_range must be a list with one or more item or a tuple with 2 or 3 items"
 
     def toList(self):
-        return [data.content for data in self]
+        '''
+            Returns the group as a list of numbers (int, float or long) or a
+            list of tuples (points 2D or 3D).
             
+            Usage:
+            >>> g = Group([1,2,3,4],'g1'); g.toList()
+            [1, 2, 3, 4]
+            >>> g = Group([(1,2),(2,3),(3,4)],'g2'); g.toList()
+            [(1, 2), (2, 3), (3, 4)]
+            >>> g = Group([(1,2,3),(3,4,5)],'g2'); g.toList()
+            [(1, 2, 3), (3, 4, 5)]
+        '''
+        return [data.content for data in self]
+    
+    def index(self):
+        '''
+            Returns the index of this group in its parent (serie)
+        '''
+        pass
+    
+    def copy(self):
+        '''
+            Returns a copy of this group
+        '''
+        pass
+    
     def __str__ (self):
+        '''
+            Returns a string representing the Group
+        '''
         ret = ""
         if self.name is not None:
             ret += self.name + " "
-        if len(self.data_list) > 0:
+        if len(self) > 0:
             list_str = [str(item) for item in self]
             ret += str(list_str)
         else:
             ret += "[]"
         return ret
-            
+    
     def __getitem__(self, key):
+        '''
+            Makes a Group iterable, based in the data_list property
+        '''
         return self.data_list[key]
-
+    
     def __len__(self):
-        n = 0
-        for data in self:
-            n += 1
-        return n
-        
-    x_range = property(_get_x_range, _set_x_range)
+        '''
+            Returns the length of the Group, based in the data_list property
+        '''
+        return len(self.data_list)
+
     
 class Serie(object):
-    def __init__(self, serie=None, name=None):
+    '''
+        Class that moodels a Serie (group of groups). Every value (int, float,
+        long, tuple or list) passed is converted to a list of Group or Data.
+        It can receive:
+         - a single number or point, will be converted to a Group of one Data;
+         - a list of numbers, will be converted to a group of numbers;
+         - a list of tuples, will converted to a single Group of points;
+         - a list of lists of numbers, each 'sublist' will be converted to a
+           group of numbers;
+         - a list of lists of tuples, each 'sublist' will be converted to a
+           group of points;
+         - a list of lists of lists, the content of the 'sublist' will be
+           processed as coordinated lists and the result will be converted to
+           a group of points;
+         - a Dictionary where each item can be the same of the list: number,
+           point, list of numbers, list of points or list of lists (coordinated
+           lists);
+         - an instance of Data;
+         - an instance of group.
+    '''
+    def __init__(self, serie=None, name=None, property=[]):
+        '''
+            Starts main atributes in Group instance.
+            @serie      - a list, dict of data witch compound the serie;
+            @name       - name of the serie;
+            @property   - a list/dict of properties to be used in the plots of
+                          this Serie
+            
+            Usage:
+            >>> print Serie([1,2,3,4])
+            ["['1', '2', '3', '4']"]
+            >>> print Serie([[1,2,3],[4,5,6]])
+            ["['1', '2', '3']", "['4', '5', '6']"]
+            >>> print Serie((1,2))
+            ["['(1, 2)']"]
+            >>> print Serie([(1,2),(2,3)])
+            ["['(1, 2)', '(2, 3)']"]
+            >>> print Serie([[(1,2),(2,3)],[(4,5),(5,6)]])
+            ["['(1, 2)', '(2, 3)']", "['(4, 5)', '(5, 6)']"]
+            >>> print Serie([[[1,2,3],[1,2,3],[1,2,3]]])
+            ["['(1, 1, 1)', '(2, 2, 2)', '(3, 3, 3)']"]
+            >>> print Serie({'g1':[1,2,3], 'g2':[4,5,6]})
+            ["g1 ['1', '2', '3']", "g2 ['4', '5', '6']"]
+            >>> print Serie({'g1':[(1,2),(2,3)], 'g2':[(4,5),(5,6)]})
+            ["g1 ['(1, 2)', '(2, 3)']", "g2 ['(4, 5)', '(5, 6)']"]
+            >>> print Serie({'g1':[[1,2],[1,2]], 'g2':[[4,5],[4,5]]})
+            ["g1 ['(1, 1)', '(2, 2)']", "g2 ['(4, 4)', '(5, 5)']"]
+            >>> print Serie(Data(1,'d1'))
+            ["['d1: 1']"]
+            >>> print Serie(Group([(1,2),(2,3)],'g1'))
+            ["g1 ['(1, 2)', '(2, 3)']"]
+        '''
+        # Intial values
         self.__group_list = []
         self.__name = None
-        if name is not None:
-            self.name = name
-        if serie is not None:
-            self.group_list = serie
+        self.__range = None
+        
+        self.name = name
+        self.group_list = serie
         
     # Name property
     @apply
     def name():
+        doc = '''
+            Name is a read/write property that controls the input of name.
+             - If passed an invalid value it cleans the name with None
+             
+            Usage:
+            >>> s = Serie(13); s.name = 'name_test'; print s
+            name_test ["['13']"]
+            >>> s.name = 11; print s
+            ["['13']"]
+            >>> s.name = 'other_name'; print s
+            other_name ["['13']"]
+            >>> s.name = None; print s
+            ["['13']"]
+            >>> s.name = 'last_name'; print s
+            last_name ["['13']"]
+            >>> s.name = ''; print s
+            ["['13']"]
+        '''
         def fget(self):
+            '''
+                Returns the name as a string
+            '''
             return self.__name
-
+        
         def fset(self, name):
             '''
-                Ensures that data is a valid tuple/list or a number (float or int)
+                Sets the name of the Group
             '''
             if type(name) in STRTYPES and len(name) > 0:
                 self.__name = name
             else:
-                name = None
-
+                self.__name = None
+        
+        return property(**locals())
+        
+    @apply
+    def range():
+        doc = '''
+            The range is a read/write property that generates a range of values
+            for the x axis of the functions. When passed a tuple it works just
+            like the buil-in range funtion:
+             - 1 item, represent the end of the range started from 0;
+             - 2 items, represents the start and the end, respectively;
+             - 3 items, the last one represents the step;
+             
+            When passed a list the range function understands as a valid range.
+            
+            Usage:
+            >>> s = Serie(); s.range = 10; print s.range
+            [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]
+            >>> s = Serie(); s.range = (5); print s.range
+            [0.0, 1.0, 2.0, 3.0, 4.0]
+            >>> s = Serie(); s.range = (1,7); print s.range
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+            >>> s = Serie(); s.range = (0,10,2); print s.range
+            [0.0, 2.0, 4.0, 6.0, 8.0]
+            >>>
+            >>> s = Serie(); s.range = [0]; print s.range
+            [0.0]
+            >>> s = Serie(); s.range = [0,10,20]; print s.range
+            [0.0, 10.0, 20.0]
+        '''
+        def fget(self):
+            '''
+                Returns the range
+            '''
+            return self.__range
+        
+        def fset(self, x_range):
+            '''
+                Controls the input of a valid type and generate the range
+            '''
+            # if passed a simple number convert to tuple
+            if type(x_range) in NUMTYPES:
+                x_range = (x_range,)
+            
+            # A list, just convert to float
+            if type(x_range) is list and len(x_range) > 0:
+                # Convert all to float
+                x_range = map(float, x_range)
+                # Prevents repeated values and convert back to list
+                self.__range = list(set(x_range[:]))
+                # Sort the list to ascending order
+                self.__range.sort()
+            
+            # A tuple, must check the lengths and generate the values
+            elif type(x_range) is tuple and len(x_range) in (1,2,3):
+                # Convert all to float
+                x_range = map(float, x_range)
+                
+                # Inital values
+                start = 0.0
+                step = 1.0
+                end = 0.0
+                
+                # Only the end and it can't be less or iqual to 0
+                if len(x_range) is 1 and x_range > 0:
+                        end = x_range[0]
+                
+                # The start and the end but the start must be lesser then the end
+                elif len(x_range) is 2 and x_range[0] < x_range[1]:
+                        start = x_range[0]
+                        end = x_range[1]
+                
+                # All 3, but the start must be lesser then the end
+                elif x_range[0] < x_range[1]:
+                        start = x_range[0]
+                        end = x_range[1]
+                        step = x_range[2]
+                
+                # Starts the range
+                self.__range = []
+                # Generate the range
+                # Cnat use the range function becouse it don't suport float values
+                while start < end:
+                    self.__range.append(start)
+                    start += step
+                
+            # Incorrect type
+            else:
+                raise Exception, "x_range must be a list with one or more item or a tuple with 2 or 3 items"
+            
         return property(**locals())
     
     @apply
     def group_list():
+        doc = '''
+            The group_list is a read/write property used to pre-process the list
+            of Groups.
+            It can be:
+             - a single number, point or lambda, will be converted to a single
+               Group of one Data;
+             - a list of numbers, will be converted to a group of numbers;
+             - a list of tuples, will converted to a single Group of points;
+             - a list of lists of numbers, each 'sublist' will be converted to
+               a group of numbers;
+             - a list of lists of tuples, each 'sublist' will be converted to a
+               group of points;
+             - a list of lists of lists, the content of the 'sublist' will be
+               processed as coordinated lists and the result will be converted
+               to a group of points;
+             - a list of lambdas, each lambda represents a Group;
+             - a Dictionary where each item can be the same of the list: number,
+               point, list of numbers, list of points, list of lists
+               (coordinated lists) or lambdas
+             - an instance of Data;
+             - an instance of group.
+             
+            Usage:
+            >>> s = Serie()
+            >>> s.group_list = [1,2,3,4]; print s
+            ["['1', '2', '3', '4']"]
+            >>> s.group_list = [[1,2,3],[4,5,6]]; print s
+            ["['1', '2', '3']", "['4', '5', '6']"]
+            >>> s.group_list = (1,2); print s
+            ["['(1, 2)']"]
+            >>> s.group_list = [(1,2),(2,3)]; print s
+            ["['(1, 2)', '(2, 3)']"]
+            >>> s.group_list = [[(1,2),(2,3)],[(4,5),(5,6)]]; print s
+            ["['(1, 2)', '(2, 3)']", "['(4, 5)', '(5, 6)']"]
+            >>> s.group_list = [[[1,2,3],[1,2,3],[1,2,3]]]; print s
+            ["['(1, 1, 1)', '(2, 2, 2)', '(3, 3, 3)']"]
+            >>> s.group_list = {'g1':[1,2,3], 'g2':[4,5,6]}; print s
+            ["g1 ['1', '2', '3']", "g2 ['4', '5', '6']"]
+            >>> s.group_list = {'g1':[(1,2),(2,3)], 'g2':[(4,5),(5,6)]}; print s
+            ["g1 ['(1, 2)', '(2, 3)']", "g2 ['(4, 5)', '(5, 6)']"]
+            >>> s.group_list = {'g1':[[1,2],[1,2]], 'g2':[[4,5],[4,5]]}; print s
+            ["g1 ['(1, 1)', '(2, 2)']", "g2 ['(4, 4)', '(5, 5)']"]
+            >>> s.range = 10
+            >>> s.group_list = lambda x:x*2
+            >>> s.group_list = [lambda x:x*2, lambda x:x**2, lambda x:x**3]; print s
+            ["['0.0', '2.0', '4.0', '6.0', '8.0', '10.0', '12.0', '14.0', '16.0', '18.0']", "['0.0', '1.0', '4.0', '9.0', '16.0', '25.0', '36.0', '49.0', '64.0', '81.0']", "['0.0', '1.0', '8.0', '27.0', '64.0', '125.0', '216.0', '343.0', '512.0', '729.0']"]
+            >>> s.group_list = {'linear':lambda x:x*2, 'square':lambda x:x**2, 'cubic':lambda x:x**3}; print s
+            ["cubic ['0.0', '1.0', '8.0', '27.0', '64.0', '125.0', '216.0', '343.0', '512.0', '729.0']", "linear ['0.0', '2.0', '4.0', '6.0', '8.0', '10.0', '12.0', '14.0', '16.0', '18.0']", "square ['0.0', '1.0', '4.0', '9.0', '16.0', '25.0', '36.0', '49.0', '64.0', '81.0']"]
+            >>> s.group_list = Data(1,'d1'); print s
+            ["['d1: 1']"]
+            >>> s.group_list = Group([(1,2),(2,3)],'g1'); print s
+            ["g1 ['(1, 2)', '(2, 3)']"]
+        '''
         def fget(self):
+            '''
+                Return the group list.
+            '''
             return self.__group_list
         
         def fset(self, serie):
+            '''
+                Controls the input of a valid group list.
+            '''
+            # Type: None
+            if serie is None:
+                self.__group_list = []
+            
             # List or Tuple
-            if type(serie) in LISTTYPES:
+            elif type(serie) in LISTTYPES:
                 self.__group_list = []
                 # List of numbers
-                if type(serie[0]) in NUMTYPES:
+                if type(serie[0]) in NUMTYPES or type(serie[0]) is tuple:
                     self.add_group(serie)
                     
-                # List of lists/tuple or anything else
+                # List of anything else
                 else:
                     for group in serie:
                         self.add_group(group)
@@ -388,233 +888,71 @@ class Serie(object):
             # Dict representing serie of groups
             elif type(serie) is dict:
                 self.__group_list = []
-                groups = serie.items()
-                for group in groups:
-                    self.add_group(Group(group[1],group[0]))
-            # Int/float, instance of Group or Data
-            elif type(serie) in [int, float] or isinstance(serie, Group) or isinstance(serie, Data):
+                names = serie.keys()
+                names.sort()
+                for name in names:
+                    self.add_group(Group(serie[name],name,self))
+                    
+            # A single lambda
+            elif callable(serie):
                 self.__group_list = []
                 self.add_group(serie)
+                
+            # Int/float, instance of Group or Data
+            elif type(serie) in NUMTYPES or isinstance(serie, Group) or isinstance(serie, Data):
+                self.__group_list = []
+                self.add_group(serie)
+                
+            # Default
             else:
                 raise TypeError, "Serie type not supported"
 
         return property(**locals())
     
     def add_group(self, group, name=None):
+        '''
+            Append a new group in group_list
+        '''
         if not isinstance(group, Group):
             #Try to convert
-            group = Group(group, name)
+            group = Group(group, name, self)
             
         if len(group.data_list) is not 0:
             self.__group_list.append(group)
-            self.__group_list[-1].parent = self        
+            self.__group_list[-1].parent = self
+            
+    def copy(self):
+        '''
+            Returns a copy of the Serie
+        '''
+        pass
 
     def __getitem__(self, key):
+        '''
+            Makes the Serie iterable, based in the group_list property
+        '''
         return self.__group_list[key]
         
     def __str__(self):
+        '''
+            Returns a string that represents the Serie
+        '''
         ret = ""
         if self.name is not None:
             ret += self.name + " "
-        if len(self.__group_list) > 0:
-            list_str = [str(item) for item in self.__group_list]
+        if len(self) > 0:
+            list_str = [str(item) for item in self]
             ret += str(list_str)
         else:
             ret += "[]"
         return ret
     
     def __len__(self):
-        n = 0
-        for group in self:
-            n += 1
-        return n
-
-    def tste(self):
-        pass
-              
-
-############################### Tests ###############################
-
-DATAS = 0
-GROUPS = 0
-SERIES = 0
-
-if DATAS:
-    # DATA TESTS!!
-    print "Part 1"
-    print "Blank data -",Data()
-    print "Int data -",Data(1)
-    print "List data 1 -",Data([1,2,3])
-    print "List data 2 -",Data((1,2))
-    print
-    print "Part 2"
-    print "Blank named data -",Data(name="test")
-    print "Int data -",Data(1,"int_test")
-    print "List data 1 -",Data([1,2,3],"list_test")
-    print "List data 2 -",Data((1,2),"tuple_test")
-    print 
-    print "part 3"
-    d1 = Data((1,2,3),"D1")
-    print "data 1 -", d1
-    d2 = d1.copy()
-    print "data 2 (copy of D1) -", d2
-    d1.content = [7,6]
-    print "altered D1 -",d1
-    print "data 2 -",d2
-    print "End of data tests..."
-if GROUPS:
-    # GROUP TESTS
-    print
-    print "Group tests"
-    print "Part 1"
-    g = Group()
-    print "Blank group -", g
-    print "simple type -", Group(1)
-    print "Incremental feed 1-"
-    g = Group()
-    for i in range(5):
-        g.add_data(i)
-        print "\t"+str(g)
-    g = Group()
-    x = [(1,2),(2,3),(3,4),(5,6)]
-    print "Incremental feed 2-"
-    for i in x:
-        g.add_data(i)
-        print "\t"+str(g)
-    print "Lists of int 1 -", Group([1,2,3,4,5])
-    print "Lists of int 2 -", Group((1,2,3,4,5))
-    print "Lists of coord 2D lists -", Group(([1,2,3,4],[5,6,7,8]))
-    print "Lists of coord 3D lists -", Group(([1,2,3,4],[5,6,7,8],[9,10,11,12]))
-    print "Lists of 2D points -", Group([(1,2), (2,3), (4,5)])
-    print "Lists of 3D points -", Group([(1,2,3), (2,3,4), (4,5,6)])
-    print
-    print "Part 2"
-    g = Group()
-    g.name = "blanks"
-    print "Blank group -", g
-    print "simple type -", Group(1,"simple")
-    print "Incremental feed 1-"
-    g = Group(name="inc int")
-    for i in range(5):
-        g.add_data(i)
-        print "\t"+str(g)
-
-    g = Group(name="inc list")
-    x = [(1,2),(2,3),(3,4),(5,6)]
-    print "Incremental feed 2-"
-    for i in x:
-        g.add_data(i)
-        print "\t"+str(g)
-        
-    print "Lists of int 1 -", Group([1,2,3,4,5],"int list1")
-    print "Lists of int 2 -", Group((1,2,3,4,5),"int list2")
-    print "Lists of coord 2D lists -", Group(([1,2,3,4],[5,6,7,8]),"2D pts")
-    print "Lists of coord 3D lists -", Group(([1,2,3,4],[5,6,7,8],[9,10,11,12]),"3D pts")
-    print "Lists of 2D points -", Group([(1,2), (2,3), (4,5)], "2D Pts")
-    print "Lists of 3D points -", Group([(1,2,3), (2,3,4), (4,5,6)],"3d Pts")
-    print
-    print "Part 3"
-    g = Group()
-    y = lambda x:x**2
-    g.x_range = [1,10]
-    g.data_list = y
-    print "Group range with list 1:",g.x_range
-    print "group",g
-    g.x_range = range(1,7)
-    g.data_list = y
-    print "Group range with list 2:",g.x_range
-    print "group",g
-    g.x_range = (1,10)
-    g.data_list = y
-    print "Group range with tuple 1:",g.x_range
-    print "group",g
-    g.x_range = (1,2,10)
-    g.data_list = y
-    print "Group range with tuple 2:",g.x_range
-    print "group",g
+        '''
+            Returns the length of the Serie, based in the group_lsit property
+        '''
+        return len(self.group_list)
     
-if SERIES:
-    # SERIES TEST
-    print
-    print "Series Testes"
-    print "Part 1"
-    s = Serie()
-    s.add_group([1,2,3])
-    print "Adding Groups -",s
 
-    s = Serie()
-    s.add_group(Group([(7,5),(8,9)],"group1"))
-    s.add_group(Group([(4,3),(1,2)],"group2"))
-    print "Adding named groups -",s
-
-    s = Serie()
-    s.group_list = {"g1":[1,2,3],
-               "g2":[3,5,4],
-               "g3":[5,6,8]}
-    print "Using Dictionary -",s
-
-    s = Serie()
-    s.group_list = [[(1,2),(2,3)],[(4,5),(5,6)],[(7,8),(8,9)]]
-    print "Groups of points -",s
-    s = Serie([[1,2,3],[4,5,6]],"Serie1")
-    print "Named simple goup -",s
-
-    #Caso 1: 3 grupos com nomes e cada grupo com uma swrie de numeros
-    data = { "john" : [-5, -2, 0, 1, 3], "mary" : [0, 0, 3, 5, 2], "philip" : [-2, -3, -4, 2, 1] }
-    s = Serie(data,"dic2")
-    print "Dic declaration test -",s
-    # >>> dic2 ["philip ['-2', '-3', '-4', '2', '1']", "john ['-5', '-2', '0', '1', '3']", "mary ['0', '0', '3', '5', '2']"]
-
-    #Caso 3: 4 grupos e cada um com nome com numero
-    data = {"john" : 700, "mary" : 100, "philip" : 100 , "suzy" : 50, "yman" : 50}
-    s = Serie(data, "simple dic")
-    print "Dic only with numbers -",s
-    # >>> simple dic ["yman ['50']", "philip ['100']", "john ['700']", "mary ['100']", "suzy ['50']"]
-
-    #Caso 4: um grupo com uma serie de numeros
-    data = [ 0, 1, 3.5, 8.5, 9, 0, 10, 10, 2, 1 ]
-    s = Serie(data, "num group")
-    print "Only one group of numbers -",s
-    # >>> num group ["['0']", "['1']", "['3.5']", "['8.5']", "['9']", "['0']", "['10']", "['10']", "['2']", "['1']"]
-    # Criar verificacao pra criar apenas um grupo
-
-    #Caso 5: grupos com series de pontos
-    data = [ [ (0,0), (-2,10), (0,15), (1,5), (2,0), (3,-10), (3,5) ],
-             [ (0,2), (-2,12), (0,17), (1,7), (2,2), (3,-8),  (3,7) ]  ]
-    s = Serie(data, "pts groups")
-    print "groups of points -",s
-    # >>> pts groups ["['(0, 0)', '(-2, 10)', '(0, 15)', '(1, 5)', '(2, 0)', '(3, -10)', '(3, 5)']", "['(0, 2)', '(-2, 12)', '(0, 17)', '(1, 7)', '(2, 2)', '(3, -8)', '(3, 7)']"]
-
-    #Caso 6: grupos com series de pontos e nomes
-    data = { 'data1' : [ (0,0), (0,10), (0,15), (1,5), (2,0), (3,-10), (3,5) ],
-             'data2' : [ (2,2), (2,12), (2,17), (3,7), (4,2), (5,-8),  (5,7) ]}
-    s = Serie(data, "points dic")
-    print "Dic with groups of named points -",s
-    # >>> points dic ["data1 ['(0, 0)', '(0, 10)', '(0, 15)', '(1, 5)', '(2, 0)', '(3, -10)', '(3, 5)']", "data2 ['(2, 2)', '(2, 12)', '(2, 17)', '(3, 7)', '(4, 2)', '(5, -8)', '(5, 7)']"]
-
-    #Caso 7: grupos com listas de coordenadas x e y
-    data = [ [ [0, 0, 0, 1, 2, 3, 3], [0, 10, 15, 5, 0, -10, 5] ],
-             [ [2, 2, 2, 3, 4, 5, 5], [2, 12, 17, 7, 2, -8, 7] ]  ]
-    s = Serie(data, "coord 1")
-    print "2 groups of coord lists -",s
-    # >>> Caso 7 ["['(0, 0)', '(0, 10)', '(0, 15)', '(1, 5)', '(2, 0)', '(3, -10)', '(3, 5)']", "['(2, 2)', '(2, 12)', '(2, 17)', '(3, 7)', '(4, 2)', '(5, -8)', '(5, 7)']"]
-
-    #Caso 8: grupos com listas de coordenadas x e y e nome para o grupo
-    data = { 'data1' : [ [0, 0, 0, 1, 2, 3, 3], [0, 10, 15, 5, 0, -10, 5] ],
-             'data2' : [ [2, 2, 2, 3, 4, 5, 5], [2, 12, 17, 7, 2, -8, 7] ]  }
-    s = Serie(data, "Caso 8")
-    print s
-    # >>> Caso 8 ["data1 ['(0, 0)', '(0, 10)', '(0, 15)', '(1, 5)', '(2, 0)', '(3, -10)', '(3, 5)']", "data2 ['(2, 2)', '(2, 12)', '(2, 17)', '(3, 7)', '(4, 2)', '(5, -8)', '(5, 7)']"]
-
-    # TODO
-    # Caso 9: lista de lambdas
-    #data = [ lambda x : 1, lambda y : y**2, lambda z : -z**2 ]
-    #s = Serie(data, "lab")
-    #print s
-    # Ocorre erro pois temos que especificar o x_range para que os valores de lambda sejam gerados!
-
-
-
-
-
-
+if __name__ == '__main__':
+    doctest.testmod()
