@@ -1606,8 +1606,6 @@ class PiePlot(Plot):
         x0,y0 = self.center
         cr = self.context
         cr.set_source_rgba(*self.series_colors[0])
-        cr.arc(x0,y0,self.radius + 10,0, 2*math.pi)
-        cr.stroke()
         for number,key in enumerate(self.series_labels):
             next_angle = angle + 2.0*math.pi*self.data[number]/self.total
             cr.set_source_rgba(*self.series_colors[number])
