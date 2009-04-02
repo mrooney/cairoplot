@@ -826,7 +826,7 @@ class BarPlot(Plot):
                  y_bounds = None,
                  series_colors = None,
                  main_dir = None):
-
+        
         self.bounds = {}
         self.bounds[HORZ] = x_bounds
         self.bounds[VERT] = y_bounds
@@ -1033,12 +1033,12 @@ class HorizontalBarPlot(BarPlot):
                  height = 480,
                  background = "white light_gray",
                  border = 0,
-                 series_labels = False,
                  display_values = False,
                  grid = False,
                  rounded_corners = False,
                  stack = False,
                  three_dimension = False,
+                 series_labels = None,
                  x_labels = None,
                  y_labels = None,
                  x_bounds = None,
@@ -1202,12 +1202,12 @@ class VerticalBarPlot(BarPlot):
                  height = 480,
                  background = "white light_gray",
                  border = 0,
-                 series_labels = None,
                  display_values = False,
                  grid = False,
                  rounded_corners = False,
                  stack = False,
                  three_dimension = False,
+                 series_labels = None,
                  x_labels = None,
                  y_labels = None,
                  x_bounds = None,
@@ -1375,6 +1375,187 @@ class VerticalBarPlot(BarPlot):
                     
                     x0 += inner_step
     
+class StreamChart(VerticalBarPlot):
+    def __init__(self, 
+                 surface = None,
+                 data = None,
+                 width = 640,
+                 height = 480,
+                 background = "white light_gray",
+                 border = 0,
+                 grid = False,
+                 series_legend = None,
+                 x_labels = None,
+                 x_bounds = None,
+                 y_bounds = None,
+                 series_colors = None):
+
+        VerticalBarPlot.__init__(self, surface, data, width, height, background, border, 
+                                 False, grid, False, True, False,
+                                 None, x_labels, None, x_bounds, y_bounds, series_colors)
+    
+    def calc_steps(self):
+        other_dir = other_direction(self.main_dir)    
+        self.series_amplitude = self.bounds[self.main_dir][1] - self.bounds[self.main_dir][0]
+        if self.series_amplitude:
+            self.steps[self.main_dir] = float(self.plot_dimensions[self.main_dir])/self.series_amplitude
+        else:
+            self.steps[self.main_dir] = 0.00
+        series_length = len(self.data)
+        self.steps[other_dir] = float(self.plot_dimensions[other_dir])/series_length
+    
+    def render_legend(self):
+        pass
+    
+    def ground(self, index):
+        sum_values = sum(self.data[index])
+        return -0.5*sum_values
+    
+    def calc_angles(self):
+        middle = self.plot_top - self.plot_dimensions[VERT]/2.0
+        self.angles = [tuple([0.0 for x in range(len(self.data)+1)])]
+        for x_index in range(1, len(self.data)-1):
+            t = []
+            x0 = self.borders[HORZ] + (0.5 + x_index - 1)*self.steps[HORZ]
+            x2 = self.borders[HORZ] + (0.5 + x_index + 1)*self.steps[HORZ]
+            y0 = middle - self.ground(x_index-1)*self.steps[VERT]
+            y2 = middle - self.ground(x_index+1)*self.steps[VERT]
+            t.append(math.atan(float(y0-y2)/(x0-x2)))
+            for data_index in range(len(self.data[x_index])):
+                x0 = self.borders[HORZ] + (0.5 + x_index - 1)*self.steps[HORZ]
+                x2 = self.borders[HORZ] + (0.5 + x_index + 1)*self.steps[HORZ]
+                y0 = middle - self.ground(x_index-1)*self.steps[VERT] - self.data[x_index-1][data_index]*self.steps[VERT]
+                y2 = middle - self.ground(x_index+1)*self.steps[VERT] - self.data[x_index+1][data_index]*self.steps[VERT]
+                
+                for i in range(0,data_index):
+                    y0 -= self.data[x_index-1][i]*self.steps[VERT]
+                    y2 -= self.data[x_index+1][i]*self.steps[VERT]
+                
+                if data_index == len(self.data[0])-1 and False:
+                    self.context.set_source_rgba(0.0,0.0,0.0,0.3)
+                    self.context.move_to(x0,y0)
+                    self.context.line_to(x2,y2)
+                    self.context.stroke()
+                    self.context.arc(x0,y0,2,0,2*math.pi)
+                    self.context.fill()
+                t.append(math.atan(float(y0-y2)/(x0-x2)))
+            self.angles.append(tuple(t))
+        self.angles.append(tuple([0.0 for x in range(len(self.data)+1)]))
+    
+    def render_plot(self):
+        self.calc_angles()
+        middle = self.plot_top - self.plot_dimensions[VERT]/2.0
+        p = 0.4*self.steps[HORZ]
+        for data_index in range(len(self.data[0])-1,-1,-1):
+            self.context.set_source_rgba(*self.series_colors[data_index])
+            
+            #draw the upper line
+            for x_index in range(len(self.data)-1) :
+                x1 = self.borders[HORZ] + (0.5 + x_index)*self.steps[HORZ]
+                y1 = middle - self.ground(x_index)*self.steps[VERT] - self.data[x_index][data_index]*self.steps[VERT]
+                x2 = self.borders[HORZ] + (0.5 + x_index + 1)*self.steps[HORZ]
+                y2 = middle - self.ground(x_index + 1)*self.steps[VERT] - self.data[x_index + 1][data_index]*self.steps[VERT]
+                
+                for i in range(0,data_index):
+                    y1 -= self.data[x_index][i]*self.steps[VERT]
+                    y2 -= self.data[x_index+1][i]*self.steps[VERT]
+                
+                if x_index == 0:
+                    self.context.move_to(x1,y1)
+                
+                ang1 = self.angles[x_index][data_index+1]
+                ang2 = self.angles[x_index+1][data_index+1] + math.pi
+                self.context.curve_to(x1+p*math.cos(ang1),y1+p*math.sin(ang1),
+                                      x2+p*math.cos(ang2),y2+p*math.sin(ang2),
+                                      x2,y2)
+
+            for x_index in range(len(self.data)-1,0,-1) :
+                x1 = self.borders[HORZ] + (0.5 + x_index)*self.steps[HORZ]
+                y1 = middle - self.ground(x_index)*self.steps[VERT]
+                x2 = self.borders[HORZ] + (0.5 + x_index - 1)*self.steps[HORZ]
+                y2 = middle - self.ground(x_index - 1)*self.steps[VERT]
+                
+                for i in range(0,data_index):
+                    y1 -= self.data[x_index][i]*self.steps[VERT]
+                    y2 -= self.data[x_index-1][i]*self.steps[VERT]
+                
+                if x_index == len(self.data)-1:
+                    self.context.line_to(x1,y1+2)
+                
+                #revert angles by pi degrees to take the turn back
+                ang1 = self.angles[x_index][data_index] + math.pi
+                ang2 = self.angles[x_index-1][data_index]
+                self.context.curve_to(x1+p*math.cos(ang1),y1+p*math.sin(ang1),
+                                      x2+p*math.cos(ang2),y2+p*math.sin(ang2),
+                                      x2,y2+2)
+
+            self.context.close_path()
+            self.context.fill()
+            
+            if False:
+                self.context.move_to(self.borders[HORZ] + 0.5*self.steps[HORZ], middle)
+                for x_index in range(len(self.data)-1) :
+                    x1 = self.borders[HORZ] + (0.5 + x_index)*self.steps[HORZ]
+                    y1 = middle - self.ground(x_index)*self.steps[VERT] - self.data[x_index][data_index]*self.steps[VERT]
+                    x2 = self.borders[HORZ] + (0.5 + x_index + 1)*self.steps[HORZ]
+                    y2 = middle - self.ground(x_index + 1)*self.steps[VERT] - self.data[x_index + 1][data_index]*self.steps[VERT]
+                    
+                    for i in range(0,data_index):
+                        y1 -= self.data[x_index][i]*self.steps[VERT]
+                        y2 -= self.data[x_index+1][i]*self.steps[VERT]
+                    
+                    ang1 = self.angles[x_index][data_index+1]
+                    ang2 = self.angles[x_index+1][data_index+1] + math.pi
+                    self.context.set_source_rgba(1.0,0.0,0.0)
+                    self.context.arc(x1+p*math.cos(ang1),y1+p*math.sin(ang1),2,0,2*math.pi)
+                    self.context.fill()
+                    self.context.set_source_rgba(0.0,0.0,0.0)
+                    self.context.arc(x2+p*math.cos(ang2),y2+p*math.sin(ang2),2,0,2*math.pi)
+                    self.context.fill()
+                    '''self.context.set_source_rgba(0.0,0.0,0.0,0.3)
+                    self.context.arc(x2,y2,2,0,2*math.pi)
+                    self.context.fill()'''
+                    self.context.move_to(x1,y1)
+                    self.context.line_to(x1+p*math.cos(ang1),y1+p*math.sin(ang1))
+                    self.context.stroke()
+                    self.context.move_to(x2,y2)
+                    self.context.line_to(x2+p*math.cos(ang2),y2+p*math.sin(ang2))
+                    self.context.stroke()
+            if False:
+                for x_index in range(len(self.data)-1,0,-1) :
+                    x1 = self.borders[HORZ] + (0.5 + x_index)*self.steps[HORZ]
+                    y1 = middle - self.ground(x_index)*self.steps[VERT]
+                    x2 = self.borders[HORZ] + (0.5 + x_index - 1)*self.steps[HORZ]
+                    y2 = middle - self.ground(x_index - 1)*self.steps[VERT]
+                    
+                    for i in range(0,data_index):
+                        y1 -= self.data[x_index][i]*self.steps[VERT]
+                        y2 -= self.data[x_index-1][i]*self.steps[VERT]
+                    
+                    #revert angles by pi degrees to take the turn back
+                    ang1 = self.angles[x_index][data_index] + math.pi
+                    ang2 = self.angles[x_index-1][data_index]
+                    self.context.set_source_rgba(0.0,1.0,0.0)
+                    self.context.arc(x1+p*math.cos(ang1),y1+p*math.sin(ang1),2,0,2*math.pi)
+                    self.context.fill()
+                    self.context.set_source_rgba(0.0,0.0,1.0)
+                    self.context.arc(x2+p*math.cos(ang2),y2+p*math.sin(ang2),2,0,2*math.pi)
+                    self.context.fill()
+                    '''self.context.set_source_rgba(0.0,0.0,0.0,0.3)
+                    self.context.arc(x2,y2,2,0,2*math.pi)
+                    self.context.fill()'''
+                    self.context.move_to(x1,y1)
+                    self.context.line_to(x1+p*math.cos(ang1),y1+p*math.sin(ang1))
+                    self.context.stroke()
+                    self.context.move_to(x2,y2)
+                    self.context.line_to(x2+p*math.cos(ang2),y2+p*math.sin(ang2))
+                    self.context.stroke()
+            #break
+            
+            #self.context.arc(self.dimensions[HORZ]/2, self.dimensions[VERT]/2,50,0,3*math.pi/2)
+            #self.context.fill()
+            
+
 class PiePlot(Plot):
     def __init__ (self,
             surface = None, 
@@ -1424,6 +1605,9 @@ class PiePlot(Plot):
         next_angle = 0
         x0,y0 = self.center
         cr = self.context
+        cr.set_source_rgba(*self.series_colors[0])
+        cr.arc(x0,y0,self.radius + 10,0, 2*math.pi)
+        cr.stroke()
         for number,key in enumerate(self.series_labels):
             next_angle = angle + 2.0*math.pi*self.data[number]/self.total
             cr.set_source_rgba(*self.series_colors[number])
@@ -1436,7 +1620,7 @@ class PiePlot(Plot):
             angle = next_angle
 
     def render_plot(self):
-        angle = 3*math.pi/2.0
+        angle = 0
         next_angle = 0
         x0,y0 = self.center
         cr = self.context
@@ -1943,12 +2127,12 @@ def vertical_bar_plot(name,
                       height, 
                       background = "white light_gray", 
                       border = 0, 
-                      series_labels = None,
                       display_values = False,
                       grid = False,
                       rounded_corners = False,
                       stack = False,
                       three_dimension = False,
+                      series_labels = None,
                       x_labels = None, 
                       y_labels = None, 
                       x_bounds = None, 
@@ -1982,9 +2166,9 @@ def vertical_bar_plot(name,
         CairoPlot.vertical_bar_plot ('bar2', data, 400, 300, border = 20, grid = True, rounded_corners = False)
     '''
     
-    plot = VerticalBarPlot(name, data, width, height, background, border, series_labels,
+    plot = VerticalBarPlot(name, data, width, height, background, border, 
                            display_values, grid, rounded_corners, stack, three_dimension, 
-                           x_labels, y_labels, x_bounds, y_bounds, colors)
+                           series_labels, x_labels, y_labels, x_bounds, y_bounds, colors)
     plot.render()
     plot.commit()
 
@@ -1994,12 +2178,12 @@ def horizontal_bar_plot(name,
                        height, 
                        background = "white light_gray", 
                        border = 0,
-                       series_labels = None,
                        display_values = False,
                        grid = False,
                        rounded_corners = False,
                        stack = False,
                        three_dimension = False,
+                       series_labels = None,
                        x_labels = None, 
                        y_labels = None, 
                        x_bounds = None, 
@@ -2034,9 +2218,27 @@ def horizontal_bar_plot(name,
         CairoPlot.bar_plot ('bar2', data, 400, 300, border = 20, grid = True, rounded_corners = False)
     '''
     
-    plot = HorizontalBarPlot(name, data, width, height, background, border, series_labels,
+    plot = HorizontalBarPlot(name, data, width, height, background, border, 
                              display_values, grid, rounded_corners, stack, three_dimension, 
-                             x_labels, y_labels, x_bounds, y_bounds, colors)
+                             series_labels, x_labels, y_labels, x_bounds, y_bounds, colors)
     plot.render()
     plot.commit()
 
+def stream_chart(name, 
+                 data, 
+                 width, 
+                 height, 
+                 background = "white light_gray", 
+                 border = 0,
+                 grid = False,
+                 series_legend = None,
+                 x_labels = None, 
+                 x_bounds = None, 
+                 y_bounds = None,
+                 colors = None):
+
+    #TODO: Fix docstring for horizontal_bar_plot
+    plot = StreamChart(name, data, width, height, background, border, 
+                       grid, series_legend, x_labels, x_bounds, y_bounds, colors)
+    plot.render()
+    plot.commit()
