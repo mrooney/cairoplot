@@ -405,7 +405,8 @@ class Group(object):
                     self.__data_list = []
                     # Generate values for the lambda function
                     for x in self.range:
-                        self.add_data(group(x))
+                        #self.add_data((x,round(group(x),2)))
+                        self.add_data((x,group(x)))
                         
                 # Only have range in parent
                 elif self.parent is not None and len(self.parent.range) is not 0:
@@ -415,7 +416,8 @@ class Group(object):
                     self.__data_list = []
                     # Generate values for the lambda function
                     for x in self.range:
-                        self.add_data(group(x))
+                        #self.add_data((x,round(group(x),2)))
+                        self.add_data((x,group(x)))
                         
                 # Don't have range anywhere
                 else:
@@ -446,7 +448,7 @@ class Group(object):
     def range():
         doc = '''
             The range is a read/write property that generates a range of values
-            for the x axis of the functions. When passed a tuple it works just
+            for the x axis of the functions. When passed a tuple it almost works
             like the buil-in range funtion:
              - 1 item, represent the end of the range started from 0;
              - 2 items, represents the start and the end, respectively;
@@ -581,7 +583,9 @@ class Group(object):
         '''
             Returns the index of this group in its parent (serie)
         '''
-        pass
+        if not isinstance(self.parent, Serie):
+            raise Exception, "Must set the parent first"
+        return self.parent.group_list.index(self)
     
     def copy(self):
         '''
@@ -674,6 +678,9 @@ class Serie(object):
         self.__name = None
         self.__range = None
         
+        # TODO: Implement colors with filling
+        self.__colors = None
+        
         self.name = name
         self.group_list = serie
         
@@ -719,7 +726,7 @@ class Serie(object):
     def range():
         doc = '''
             The range is a read/write property that generates a range of values
-            for the x axis of the functions. When passed a tuple it works just
+            for the x axis of the functions. When passed a tuple it almost works
             like the buil-in range funtion:
              - 1 item, represent the end of the range started from 0;
              - 2 items, represents the start and the end, respectively;
@@ -729,13 +736,13 @@ class Serie(object):
             
             Usage:
             >>> s = Serie(); s.range = 10; print s.range
-            [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]
+            [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
             >>> s = Serie(); s.range = (5); print s.range
-            [0.0, 1.0, 2.0, 3.0, 4.0]
+            [0.0, 1.0, 2.0, 3.0, 4.0, 5.0]
             >>> s = Serie(); s.range = (1,7); print s.range
-            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]
             >>> s = Serie(); s.range = (0,10,2); print s.range
-            [0.0, 2.0, 4.0, 6.0, 8.0]
+            [0.0, 2.0, 4.0, 6.0, 8.0, 8.0]
             >>>
             >>> s = Serie(); s.range = [0]; print s.range
             [0.0]
@@ -794,7 +801,7 @@ class Serie(object):
                 self.__range = []
                 # Generate the range
                 # Cnat use the range function becouse it don't suport float values
-                while start < end:
+                while start <= end:
                     self.__range.append(start)
                     start += step
                 
@@ -918,6 +925,9 @@ class Serie(object):
             group = Group(group, name, self)
             
         if len(group.data_list) is not 0:
+            # Auto naming groups
+            if group.name is None:
+                group.name = "Group "+str(len(self.__group_list)+1)
             self.__group_list.append(group)
             self.__group_list[-1].parent = self
             
