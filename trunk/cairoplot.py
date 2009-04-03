@@ -52,14 +52,14 @@ THEMES = {"black_red"         : [(0.0,0.0,0.0,1.0), (1.0,0.0,0.0,1.0)],
           "yellow_orange_red" : [(1.0,1.0,0.0,1.0), (1.0,0.7,0.0,1.0), (1.0,0.2,0.0,1.0)],
           "rainbow"           : [(1.0,0.0,0.0,1.0), (1.0,0.5,0.0,1.0), (1.0,1.0,0.0,1.0), (0.0,1.0,0.0,1.0), (0.0,0.0,1.0,1.0), (0.3, 0.0, 0.5,1.0), (0.5, 0.0, 1.0, 1.0)]}
 
-def colors_from_theme( theme, series_length ):
+def colors_from_theme( theme, series_length, mode = 'solid' ):
     colors = []
     if theme not in THEMES.keys() :
         raise Exception, "Theme not defined" 
     color_steps = THEMES[theme]
     n_colors = len(color_steps)
     if series_length <= n_colors:
-        colors = [color for color in color_steps[0:n_colors]]
+        colors = [color + tuple([mode]) for color in color_steps[0:n_colors]]
     else:
         iterations = [(series_length - n_colors)/(n_colors - 1) for i in color_steps[:-1]]
         over_iterations = (series_length - n_colors) % (n_colors - 1)
@@ -69,7 +69,7 @@ def colors_from_theme( theme, series_length ):
             iterations[i] += 1
             over_iterations -= 1
         for index,color in enumerate(color_steps[:-1]):
-            colors.append(color)
+            colors.append(color + tuple([mode]))
             if iterations[index] == 0:
                 continue
             next_color = color_steps[index+1]
@@ -81,8 +81,9 @@ def colors_from_theme( theme, series_length ):
                 colors.append((color[0] + color_step[0]*(i+1), 
                                color[1] + color_step[1]*(i+1), 
                                color[2] + color_step[2]*(i+1),
-                               color[3] + color_step[3]*(i+1)))
-        colors.append(color_steps[-1])
+                               color[3] + color_step[3]*(i+1),
+                               mode))
+        colors.append(color_steps[-1] + tuple([mode]))
     return colors
         
 
@@ -183,29 +184,43 @@ class Plot(object):
         self.series_widths = [1.0 for series in self.data]
         self.process_colors( series_colors )
         
-    def process_colors( self, series_colors, length = None ):
+    def process_colors( self, series_colors, length = None, mode = 'solid' ):
         #series_colors might be None, a theme, a string of colors names or a string of color tuples
         if length is None :
             length = len( self.data )
         #no colors passed
         if not series_colors:
             #Randomize colors
-            self.series_colors = [ [random.random() for i in range(3)] + [1.0]  for series in range( length ) ]
+            self.series_colors = [ [random.random() for i in range(3)] + [1.0, mode]  for series in range( length ) ]
         else:
-            #Theme pattern
+            #Just theme pattern
             if not hasattr( series_colors, "__iter__" ):
                 theme = series_colors
                 self.series_colors = colors_from_theme( theme.lower(), length )
+            #Theme pattern and mode
+            elif not hasattr(series_colors, '__delitem__') and not hasattr( series_colors[0], "__iter__" ):
+                theme = series_colors[0]
+                mode = series_colors[1]
+                self.series_colors = colors_from_theme( theme.lower(), length, mode )
             #List
             else:
                 self.series_colors = series_colors
                 for index, color in enumerate( self.series_colors ):
-                    #list of color names
+                    #element is a color name
                     if not hasattr(color, "__iter__"):
-                        self.series_colors[index] = COLORS[color.lower()]
-                    #list of rgb colors instead of rgba
+                        self.series_colors[index] = COLORS[color.lower()] + tuple([mode])
+                    #element is rgb tuple instead of rgba
                     elif len( color ) == 3 :
-                        self.series_colors[index] += tuple( [1.0] )
+                        self.series_colors[index] += (1.0,mode)
+                    #element has 4 elements, might be rgba tuple or rgb tuple with mode
+                    elif len( color ) == 4 :
+                        #last element is mode
+                        if not hasattr(color[3], "__iter__"):
+                            self.series_colors[index] += tuple([color[3]])
+                            self.series_colors[index][3] = 1.0
+                        #last element is alpha
+                        else:
+                            self.series_colors[index] += tuple([mode])
 
     def get_width(self):
         return self.surface.get_width()
@@ -553,7 +568,7 @@ class ScatterPlot( Plot ):
 
         for idx,key in enumerate(self.series_labels):
             #Draw color box
-            cr.set_source_rgba(*self.series_colors[idx])
+            cr.set_source_rgba(*self.series_colors[idx][:4])
             cr.rectangle(self.dimensions[HORZ] - self.borders[HORZ] - max_width - color_box_width - 10, 
                                 self.borders[VERT] + color_box_height + (idx*max_height) ,
                                 color_box_width, color_box_height)
@@ -578,7 +593,7 @@ class ScatterPlot( Plot ):
         x0 = self.borders[HORZ] - self.bounds[HORZ][0]*self.horizontal_step
         y0 = self.borders[VERT] - self.bounds[VERT][0]*self.vertical_step
         for index, serie in enumerate(self.data):
-            cr.set_source_rgba(*self.series_colors[index])
+            cr.set_source_rgba(*self.series_colors[index][:4])
             for number, tuple in enumerate(serie):
                 x = x0 + self.horizontal_step * tuple[0]
                 y = self.dimensions[VERT] - y0 - self.vertical_step * tuple[1]
@@ -621,7 +636,7 @@ class ScatterPlot( Plot ):
             y0 = self.borders[VERT] - self.bounds[VERT][0]*self.vertical_step
             radius = self.dots
             for number, serie in  enumerate (self.data):
-                cr.set_source_rgba(*self.series_colors[number])
+                cr.set_source_rgba(*self.series_colors[number][:4])
                 for tuple in serie :
                     if self.variable_radius:
                         radius = tuple[2]*self.z_step
@@ -639,7 +654,7 @@ class ScatterPlot( Plot ):
             radius = self.dots
             for number, serie in  enumerate (self.data):
                 last_tuple = None
-                cr.set_source_rgba(*self.series_colors[number])
+                cr.set_source_rgba(*self.series_colors[number][:4])
                 for tuple in serie :
                     x = x0 + self.horizontal_step*tuple[0]
                     y = y0 + self.vertical_step*tuple[1]
@@ -791,7 +806,7 @@ class FunctionPlot(ScatterPlot):
             last = None
             cr = self.context
             for number, series in  enumerate (self.data):
-                cr.set_source_rgba(*self.series_colors[number])
+                cr.set_source_rgba(*self.series_colors[number][:4])
                 x0 = self.borders[HORZ] - self.bounds[HORZ][0]*self.horizontal_step
                 y0 = self.borders[VERT] - self.bounds[VERT][0]*self.vertical_step
                 for tuple in series:
@@ -857,7 +872,7 @@ class BarPlot(Plot):
         else:
             length = len( self.data )
             
-        Plot.process_colors( self, series_colors, length )
+        Plot.process_colors( self, series_colors, length, 'linear')
     
     def calc_boundaries(self):
         if not self.bounds[self.main_dir]:
@@ -1007,7 +1022,7 @@ class BarPlot(Plot):
 
         for idx,key in enumerate(self.series_labels):
             #Draw color box
-            cr.set_source_rgba(*self.series_colors[idx])
+            cr.set_source_rgba(*self.series_colors[idx][:4])
             cr.rectangle(self.dimensions[HORZ] - self.border - max_width - color_box_width - 10, 
                                 self.border + color_box_height + (idx*max_height) ,
                                 color_box_width, color_box_height)
@@ -1166,7 +1181,7 @@ class HorizontalBarPlot(BarPlot):
                     linear = cairo.LinearGradient( key*self.steps[HORZ]/2, y0, key*self.steps[HORZ]/2, y0 + self.steps[VERT] )
                     color = self.series_colors[number]
                     linear.add_color_stop_rgba(0.0, 3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0,1.0)
-                    linear.add_color_stop_rgba(1.0, *color)
+                    linear.add_color_stop_rgba(1.0, *color[:4])
                     self.context.set_source(linear)
                     if self.rounded_corners:
                         self.draw_rectangle(number, len(series), x0, y0, x0+key*self.steps[HORZ], y0+self.steps[VERT])
@@ -1184,7 +1199,7 @@ class HorizontalBarPlot(BarPlot):
                     linear = cairo.LinearGradient(key*self.steps[HORZ]/2, y0, key*self.steps[HORZ]/2, y0 + inner_step)
                     color = self.series_colors[number]
                     linear.add_color_stop_rgba(0.0, 3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0,1.0)
-                    linear.add_color_stop_rgba(1.0, *color)
+                    linear.add_color_stop_rgba(1.0, *color[:4])
                     self.context.set_source(linear)
                     if self.rounded_corners and key != 0:
                         BarPlot.draw_round_rectangle(self,x0, y0, x0 + key*self.steps[HORZ], y0 + inner_step)
@@ -1336,11 +1351,14 @@ class VerticalBarPlot(BarPlot):
                 x0 = self.borders[HORZ] + i*self.steps[HORZ] + (i+1)*self.space
                 y0 = 0
                 for number,key in enumerate(series):
-                    linear = cairo.LinearGradient( x0, key*self.steps[VERT]/2, x0 + self.steps[HORZ], key*self.steps[VERT]/2 )
-                    color = self.series_colors[number]
-                    linear.add_color_stop_rgba(0.0, 3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0,1.0)
-                    linear.add_color_stop_rgba(1.0, *color)
-                    self.context.set_source(linear)
+                    if self.series_colors[number][4] == 'linear':
+                        linear = cairo.LinearGradient( x0, key*self.steps[VERT]/2, x0 + self.steps[HORZ], key*self.steps[VERT]/2 )
+                        color = self.series_colors[number]
+                        linear.add_color_stop_rgba(0.0, 3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0,1.0)
+                        linear.add_color_stop_rgba(1.0, *color[:4])
+                        self.context.set_source(linear)
+                    elif self.series_colors[number][4] == 'solid':
+                        self.context.set_source_rgba(*self.series_colors[number][:4])
                     if self.rounded_corners:
                         self.draw_rectangle(number, len(series), x0, self.plot_top - y0 - key*self.steps[VERT], x0 + self.steps[HORZ], self.plot_top - y0)
                         self.context.fill()
@@ -1354,11 +1372,14 @@ class VerticalBarPlot(BarPlot):
                 y0 = self.borders[VERT]
                 x0 = self.borders[HORZ] + i*self.steps[HORZ] + (i+1)*self.space
                 for number,key in enumerate(series):
-                    linear = cairo.LinearGradient( x0, key*self.steps[VERT]/2, x0 + inner_step, key*self.steps[VERT]/2 )
-                    color = self.series_colors[number]
-                    linear.add_color_stop_rgba(0.0, 3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0,1.0)
-                    linear.add_color_stop_rgba(1.0, *color)
-                    self.context.set_source(linear)
+                    if self.series_colors[number][4] == 'linear':
+                        linear = cairo.LinearGradient( x0, key*self.steps[VERT]/2, x0 + inner_step, key*self.steps[VERT]/2 )
+                        color = self.series_colors[number]
+                        linear.add_color_stop_rgba(0.0, 3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0,1.0)
+                        linear.add_color_stop_rgba(1.0, *color[:4])
+                        self.context.set_source(linear)
+                    elif self.series_colors[number][4] == 'solid':
+                        self.context.set_source_rgba(*self.series_colors[number][:4])
                     if self.rounded_corners and key != 0:
                         BarPlot.draw_round_rectangle(self, x0, self.plot_top - key*self.steps[VERT], x0+inner_step, self.plot_top)
                         self.context.fill()
@@ -1447,7 +1468,7 @@ class StreamChart(VerticalBarPlot):
         middle = self.plot_top - self.plot_dimensions[VERT]/2.0
         p = 0.4*self.steps[HORZ]
         for data_index in range(len(self.data[0])-1,-1,-1):
-            self.context.set_source_rgba(*self.series_colors[data_index])
+            self.context.set_source_rgba(*self.series_colors[data_index][:4])
             
             #draw the upper line
             for x_index in range(len(self.data)-1) :
@@ -1605,10 +1626,9 @@ class PiePlot(Plot):
         next_angle = 0
         x0,y0 = self.center
         cr = self.context
-        cr.set_source_rgba(*self.series_colors[0])
         for number,key in enumerate(self.series_labels):
             next_angle = angle + 2.0*math.pi*self.data[number]/self.total
-            cr.set_source_rgba(*self.series_colors[number])
+            cr.set_source_rgba(*self.series_colors[number][:4])
             w = cr.text_extents(key)[2]
             if (angle + next_angle)/2 < math.pi/2 or (angle + next_angle)/2 > 3*math.pi/2:
                 cr.move_to(x0 + (self.radius+10)*math.cos((angle+next_angle)/2), y0 + (self.radius+10)*math.sin((angle+next_angle)/2) )
@@ -1624,16 +1644,16 @@ class PiePlot(Plot):
         cr = self.context
         for number,series in enumerate(self.data):
             next_angle = angle + 2.0*math.pi*series/self.total
-            if self.gradient:        
+            if self.gradient or self.series_colors[number][4] == 'radial':
                 gradient_color = cairo.RadialGradient(self.center[0], self.center[1], 0, self.center[0], self.center[1], self.radius)
-                gradient_color.add_color_stop_rgba(0.3, *self.series_colors[number])
+                gradient_color.add_color_stop_rgba(0.3, *self.series_colors[number][:4])
                 gradient_color.add_color_stop_rgba(1, self.series_colors[number][0]*0.7,
                                                       self.series_colors[number][1]*0.7,
                                                       self.series_colors[number][2]*0.7,
                                                       self.series_colors[number][3])
                 cr.set_source(gradient_color)
             else:
-                cr.set_source_rgba(*self.series_colors[number])
+                cr.set_source_rgba(*self.series_colors[number][:4])
 
             self.draw_piece(angle, next_angle)
             cr.fill()
@@ -1820,7 +1840,7 @@ class GanttChart (Plot) :
         middle = (x0+x1)/2
         linear = cairo.LinearGradient(middle,y0,middle,y1)
         linear.add_color_stop_rgba(0,3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0,1.0)
-        linear.add_color_stop_rgba(1,*color)
+        linear.add_color_stop_rgba(1,*color[:4])
         cr.set_source(linear)
 
         cr.arc(x0+5, y0+5, 5, 0, 2*math.pi)
