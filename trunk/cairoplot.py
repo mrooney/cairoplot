@@ -1178,11 +1178,14 @@ class HorizontalBarPlot(BarPlot):
                 x0 = self.borders[HORZ]
                 y0 = self.borders[VERT] + i*self.steps[VERT] + (i+1)*self.space
                 for number,key in enumerate(series):
-                    linear = cairo.LinearGradient( key*self.steps[HORZ]/2, y0, key*self.steps[HORZ]/2, y0 + self.steps[VERT] )
-                    color = self.series_colors[number]
-                    linear.add_color_stop_rgba(0.0, 3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0,1.0)
-                    linear.add_color_stop_rgba(1.0, *color[:4])
-                    self.context.set_source(linear)
+                    if self.series_colors[number][4] in ('radial','linear') :
+                        linear = cairo.LinearGradient( key*self.steps[HORZ]/2, y0, key*self.steps[HORZ]/2, y0 + self.steps[VERT] )
+                        color = self.series_colors[number]
+                        linear.add_color_stop_rgba(0.0, 3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0,1.0)
+                        linear.add_color_stop_rgba(1.0, *color[:4])
+                        self.context.set_source(linear)
+                    elif self.series_colors[number][4] == 'solid':
+                        self.context.set_source_rgba(*self.series_colors[number][:4])
                     if self.rounded_corners:
                         self.draw_rectangle(number, len(series), x0, y0, x0+key*self.steps[HORZ], y0+self.steps[VERT])
                         self.context.fill()
@@ -1351,7 +1354,7 @@ class VerticalBarPlot(BarPlot):
                 x0 = self.borders[HORZ] + i*self.steps[HORZ] + (i+1)*self.space
                 y0 = 0
                 for number,key in enumerate(series):
-                    if self.series_colors[number][4] == 'linear':
+                    if self.series_colors[number][4] in ('linear','radial'):
                         linear = cairo.LinearGradient( x0, key*self.steps[VERT]/2, x0 + self.steps[HORZ], key*self.steps[VERT]/2 )
                         color = self.series_colors[number]
                         linear.add_color_stop_rgba(0.0, 3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0,1.0)
@@ -1644,7 +1647,7 @@ class PiePlot(Plot):
         cr = self.context
         for number,series in enumerate(self.data):
             next_angle = angle + 2.0*math.pi*series/self.total
-            if self.gradient or self.series_colors[number][4] == 'radial':
+            if self.gradient or self.series_colors[number][4] in ('linear','radial'):
                 gradient_color = cairo.RadialGradient(self.center[0], self.center[1], 0, self.center[0], self.center[1], self.radius)
                 gradient_color.add_color_stop_rgba(0.3, *self.series_colors[number][:4])
                 gradient_color.add_color_stop_rgba(1, self.series_colors[number][0]*0.7,
