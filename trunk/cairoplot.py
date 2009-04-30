@@ -354,7 +354,20 @@ class ScatterPlot( Plot ):
         return out_data
     
     def load_series(self, data, x_labels = None, y_labels = None, series_colors=None):
-        #Dictionary with lists
+        print type(data)
+        #TODO: In cairoplot2.0 keep only the Series instances
+        # Convert Data and Group to Serie
+        if isinstance(data, Data) or isinstance(data, Group):
+            data = Serie(data)
+            
+        # Serie
+        if  isinstance(data, Serie):
+            for group in data:
+                for item in group:
+                    if len(item) is 3:
+                        self.variable_radius = True
+            
+        #Dictionary with lists  
         if hasattr(data, "keys") :
             if hasattr( data.values()[0][0], "__delitem__" ) :
                 for key in data.keys() :
@@ -665,6 +678,7 @@ class ScatterPlot( Plot ):
             x0 = self.borders[HORZ] - self.bounds[HORZ][0]*self.horizontal_step
             y0 = self.borders[VERT] - self.bounds[VERT][0]*self.vertical_step
             radius = self.dots
+            print 'var',self.variable_radius
             for number, group in  enumerate (self.serie):
                 cr.set_source_rgba(*self.series_colors[number][:4])
                 for data in group :
@@ -778,9 +792,11 @@ class FunctionPlot(ScatterPlot):
     
     def load_series(self, data, x_labels = None, y_labels = None, series_colors=None):
         Plot.load_series(self, data, x_labels, y_labels, series_colors)
-        for group_id, group in enumerate(self.serie) :
-            for index,data in enumerate(group):
-                group[index].content = (self.bounds[HORZ][0] + self.step*index, data.content)
+        
+        if len(self.serie[0][0]) is 1:          
+            for group_id, group in enumerate(self.serie) :
+                for index,data in enumerate(group):
+                    group[index].content = (self.bounds[HORZ][0] + self.step*index, data.content)
                 
         self.calc_boundaries()
         self.calc_labels()
@@ -791,18 +807,31 @@ class FunctionPlot(ScatterPlot):
         #This function converts a function, a list of functions or a dictionary
         #of functions into its corresponding array of data
         serie = Serie()
+        
+        if isinstance(function, Group) or isinstance(function, Data):
+            function = Serie(function)
+        
+        # If is instance of Serie
+        if isinstance(function, Serie):
+            # Overwrite any bounds passed by the function
+            x_bounds = (function.range[0],function.range[-1])
+        
         #if no bounds are provided
         if x_bounds == None:
             x_bounds = (0,10)
+            
+                
         #TODO: Finish the dict translation
         if hasattr(function, "keys"): #dictionary:
-            data = {}
             for key in function.keys():
-                data[ key ] = []
+                group = Group(name=key)
+                #data[ key ] = []
                 i = x_bounds[0]
                 while i <= x_bounds[1] :
-                    data[ key ].append( function[ key ](i) )
+                    group.add_data(function[ key ](i))
+                    #data[ key ].append( function[ key ](i) )
                     i += self.step
+                serie.add_group(group)
                     
         elif hasattr(function, "__delitem__"): #list of functions
             for index,f in enumerate( function ) :
@@ -815,6 +844,9 @@ class FunctionPlot(ScatterPlot):
                     i += self.step
                 serie.add_group(group)
                 
+        elif isinstance(function, Serie): # instance of Serie
+            serie = function
+            
         else: #function
             group = Group()
             i = x_bounds[0]
@@ -822,6 +854,7 @@ class FunctionPlot(ScatterPlot):
                 group.add_data(function(i))
                 i += self.step
             serie.add_group(group)
+            
             
         return serie, x_bounds
 
@@ -2304,3 +2337,4 @@ def stream_chart(name,
 
 if __name__ == "__main__":
     import tests
+    import seriestests

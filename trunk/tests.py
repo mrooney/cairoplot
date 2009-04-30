@@ -3,9 +3,9 @@ import cairo, math, random
 import cairoplot
 
 # Line plotting
-test_scatter_plot = 1
-test_dot_line_plot = 1
-test_function_plot = 1
+test_scatter_plot = 0
+test_dot_line_plot = 0
+test_function_plot = 0
 # Bar plotting
 test_vertical_bar_plot = 0
 test_horizontal_bar_plot = 0
@@ -38,6 +38,7 @@ if test_scatter_plot:
             (17, -15, 25), (-2, -8, 5), (5, 20, 20), (18, 20, 23), (-20, -16, 17), (-19, -2, 9), (-11, 19, 18), (17, 16, 12), (-5, -20, 15),
             (-20, -13, 10), (-3, 5, 20), (-1, 13, 17), (-11, -9, 11)]
     colors = [ (0,0,0,0.25), (1,0,0,0.75) ]
+    print 'teste'
     cairoplot.scatter_plot ( 'scatter_2_variable_radius.png', data = data, width = 500, height = 500, border = 20, 
                              axis = True, discrete = True, dots = 2, grid = True, 
                              x_title = "x axis", y_title = "y axis", circle_colors = colors )
@@ -102,6 +103,10 @@ if test_function_plot :
     c = 1.5
     gaussian = lambda x : a*math.exp(-(x-b)*(x-b)/(2*c*c))
     cairoplot.function_plot( 'function_5_gaussian.png', data, 400, 300, grid = True, x_bounds = (-10,10), step = 0.1 )
+    
+    #Dict function plot
+    data = {'linear':lambda x : x*2, 'quadratic':lambda x:x**2, 'cubic':lambda x:(x**3)/2}
+    cairoplot.function_plot( 'function_6_dict.png', data, 400, 300, grid = True, x_bounds=(-5,5), step = 0.1 )
 
 
 if test_vertical_bar_plot:
