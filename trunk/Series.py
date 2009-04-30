@@ -24,15 +24,16 @@
 
 # Contributor: Rodrigo Moreiro Araujo <alf.rodrigo@gmail.com>
 
-#TODO: Add the x_lables and y_labels to the Series structure
-#TODO: Sort the when using dict
-
-import cairoplot
+#import cairoplot
 import doctest
 
 NUMTYPES = (int, float, long)
 LISTTYPES = (list, tuple)
 STRTYPES = (str, unicode)
+FILLING_TYPES = ['linear', 'solid', 'gradient']
+DEFAULT_COLOR_FILLING = 'solid'
+#TODO: Define default color list
+DEFAULT_COLOR_LIST = None
 
 class Data(object):
     '''
@@ -211,14 +212,6 @@ class Data(object):
             
         return new_data
     
-    def index(self):
-        '''
-            Return the index of Data in the list of it's parent.
-        '''
-        if not isinstance(self.parent, Group):
-            raise Exception, "Must set the parent first"
-        return self.parent.data_list.index(self)
-    
     def __str__(self):
         '''
             Return a string representation of the Data structure
@@ -362,7 +355,7 @@ class Group(object):
             >>> g.data_list = [[1,2],[1,2],[1,2]]; print g
             ['(1, 1, 1)', '(2, 2, 2)']
             >>> g.range = (10); g.data_list = lambda x:x**2; print g
-            ['0.0', '1.0', '4.0', '9.0', '16.0', '25.0', '36.0', '49.0', '64.0', '81.0']
+            ['(0.0, 0.0)', '(1.0, 1.0)', '(2.0, 4.0)', '(3.0, 9.0)', '(4.0, 16.0)', '(5.0, 25.0)', '(6.0, 36.0)', '(7.0, 49.0)', '(8.0, 64.0)', '(9.0, 81.0)']
         '''
         def fget(self):
             '''
@@ -399,6 +392,8 @@ class Group(object):
             
             # function lambda
             elif callable(group):
+                # Explicit is better than implicit
+                function = group
                 # Have range
                 if len(self.range) is not 0:
                     # Clean data_list
@@ -406,7 +401,7 @@ class Group(object):
                     # Generate values for the lambda function
                     for x in self.range:
                         #self.add_data((x,round(group(x),2)))
-                        self.add_data((x,group(x)))
+                        self.add_data((x,function(x)))
                         
                 # Only have range in parent
                 elif self.parent is not None and len(self.parent.range) is not 0:
@@ -417,7 +412,7 @@ class Group(object):
                     # Generate values for the lambda function
                     for x in self.range:
                         #self.add_data((x,round(group(x),2)))
-                        self.add_data((x,group(x)))
+                        self.add_data((x,function(x)))
                         
                 # Don't have range anywhere
                 else:
@@ -514,7 +509,7 @@ class Group(object):
                         end = x_range[1]
                 
                 # All 3, but the start must be lesser then the end
-                elif x_range[0] < x_range[1]:
+                elif x_range[0] <= x_range[1]:
                         start = x_range[0]
                         end = x_range[1]
                         step = x_range[2]
@@ -564,34 +559,45 @@ class Group(object):
             self.__data_list[-1].parent = self
         
 
-    def toList(self):
+    def to_list(self):
         '''
             Returns the group as a list of numbers (int, float or long) or a
             list of tuples (points 2D or 3D).
             
             Usage:
-            >>> g = Group([1,2,3,4],'g1'); g.toList()
+            >>> g = Group([1,2,3,4],'g1'); g.to_list()
             [1, 2, 3, 4]
-            >>> g = Group([(1,2),(2,3),(3,4)],'g2'); g.toList()
+            >>> g = Group([(1,2),(2,3),(3,4)],'g2'); g.to_list()
             [(1, 2), (2, 3), (3, 4)]
-            >>> g = Group([(1,2,3),(3,4,5)],'g2'); g.toList()
+            >>> g = Group([(1,2,3),(3,4,5)],'g2'); g.to_list()
             [(1, 2, 3), (3, 4, 5)]
         '''
         return [data.content for data in self]
-    
-    def index(self):
-        '''
-            Returns the index of this group in its parent (serie)
-        '''
-        if not isinstance(self.parent, Serie):
-            raise Exception, "Must set the parent first"
-        return self.parent.group_list.index(self)
     
     def copy(self):
         '''
             Returns a copy of this group
         '''
-        pass
+        new_group = Group()
+        new_group.__name = self.__name
+        if self.__range is not None:
+            new_group.__range = self.__range[:]
+        for data in self:
+            new_group.add_data(data.copy())
+        return new_group
+    
+    def get_names(self):
+        '''
+            Return a list with the names of all data in this group
+        '''
+        names = []
+        for data in self:
+            if data.name is None:
+                names.append('Data '+str(data.index()+1))
+            else:
+                names.append(data.name)
+        return names
+        
     
     def __str__ (self):
         '''
@@ -619,10 +625,91 @@ class Group(object):
         '''
         return len(self.data_list)
 
+
+class Colors(object):
+    '''
+        Class that models the colors its labels (names) and its properties, RGB
+        and filling type.
+        
+        It can receive:
+        - A list where each item is a list with 3 or 4 items. The
+          first 3 item represents the colors RGB and the last argument
+          defines the filling type. The list will be converted to a dict
+          and each color will receve a name based in its position in the
+          list.
+        - A dictionary where each key will be the color name and its item
+          can be a list with 3 or 4 items. The first 3 item represents
+          the colors RGB and the last argument defines the filling type.
+    '''
+    def __init__(self, color_list=None):
+        '''
+            Start the color_list property
+            @ color_list
+               is the list or dict contaning the colors properties.
+        '''
+        self.__color_list = None
+        
+        self.color_list = color_list
+    
+    @apply
+    def color_list():
+        doc = '''
+        >>> c = Colors([[1,1,1],[2,2,2,'linear'],[3,3,3,'gradient']])
+        >>> print c.color_list
+        {'Color 2': [2, 2, 2, 'linear'], 'Color 3': [3, 3, 3, 'gradient'], 'Color 1': [1, 1, 1, 'solid']}
+        >>> c.color_list = [[1,1,1],(2,2,2,'solid'),(3,3,3,'linear')]
+        >>> print c.color_list
+        {'Color 2': [2, 2, 2, 'solid'], 'Color 3': [3, 3, 3, 'linear'], 'Color 1': [1, 1, 1, 'solid']}
+        >>> c.color_list = {'a':[1,1,1],'b':(2,2,2,'solid'),'c':(3,3,3,'linear'), 'd':(4,4,4)}
+        >>> print c.color_list
+        {'a': [1, 1, 1, 'solid'], 'c': [3, 3, 3, 'linear'], 'b': [2, 2, 2, 'solid'], 'd': [4, 4, 4, 'solid']}
+        '''
+        def fget(self):
+            '''
+                Return the color list
+            '''
+            return self.__color_list
+        
+        def fset(self, color_list):
+            '''
+                Format the color list to a dictionary
+            '''
+            if color_list is None:
+                self.__color_list = None
+                return
+            
+            if type(color_list) in LISTTYPES and type(color_list[0]) in LISTTYPES:
+                old_color_list = color_list[:]
+                color_list = {}
+                for index, color in enumerate(old_color_list):
+                    if len(color) is 3 and max(map(type, color)) in NUMTYPES:
+                        color_list['Color '+str(index+1)] = list(color)+[DEFAULT_COLOR_FILLING]
+                    elif len(color) is 4 and max(map(type, color[:-1])) in NUMTYPES and color[-1] in FILLING_TYPES:
+                        color_list['Color '+str(index+1)] = list(color)
+                    else:
+                        raise TypeError, "Unsuported color format"
+            elif type(color_list) is not dict:
+                raise TypeError, "Unsuported color format"
+            
+            for name, color in color_list.items():
+                if len(color) is 3:
+                    if max(map(type, color)) in NUMTYPES:
+                        color_list[name] = list(color)+[DEFAULT_COLOR_FILLING]
+                    else:
+                        raise TypeError, "Unsuported color format"
+                elif len(color) is 4:
+                    if max(map(type, color[:-1])) in NUMTYPES and color[-1] in FILLING_TYPES:
+                        color_list[name] = list(color)
+                    else:
+                        raise TypeError, "Unsuported color format"
+            self.__color_list = color_list.copy()
+        
+        return property(**locals())
+        
     
 class Serie(object):
     '''
-        Class that moodels a Serie (group of groups). Every value (int, float,
+        Class that models a Serie (group of groups). Every value (int, float,
         long, tuple or list) passed is converted to a list of Group or Data.
         It can receive:
          - a single number or point, will be converted to a Group of one Data;
@@ -641,7 +728,7 @@ class Serie(object):
          - an instance of Data;
          - an instance of group.
     '''
-    def __init__(self, serie=None, name=None, property=[]):
+    def __init__(self, serie=None, name=None, property=[], colors=None):
         '''
             Starts main atributes in Group instance.
             @serie      - a list, dict of data witch compound the serie;
@@ -651,17 +738,17 @@ class Serie(object):
             
             Usage:
             >>> print Serie([1,2,3,4])
-            ["['1', '2', '3', '4']"]
+            ["Group 1 ['1', '2', '3', '4']"]
             >>> print Serie([[1,2,3],[4,5,6]])
-            ["['1', '2', '3']", "['4', '5', '6']"]
+            ["Group 1 ['1', '2', '3']", "Group 2 ['4', '5', '6']"]
             >>> print Serie((1,2))
-            ["['(1, 2)']"]
+            ["Group 1 ['(1, 2)']"]
             >>> print Serie([(1,2),(2,3)])
-            ["['(1, 2)', '(2, 3)']"]
+            ["Group 1 ['(1, 2)', '(2, 3)']"]
             >>> print Serie([[(1,2),(2,3)],[(4,5),(5,6)]])
-            ["['(1, 2)', '(2, 3)']", "['(4, 5)', '(5, 6)']"]
+            ["Group 1 ['(1, 2)', '(2, 3)']", "Group 2 ['(4, 5)', '(5, 6)']"]
             >>> print Serie([[[1,2,3],[1,2,3],[1,2,3]]])
-            ["['(1, 1, 1)', '(2, 2, 2)', '(3, 3, 3)']"]
+            ["Group 1 ['(1, 1, 1)', '(2, 2, 2)', '(3, 3, 3)']"]
             >>> print Serie({'g1':[1,2,3], 'g2':[4,5,6]})
             ["g1 ['1', '2', '3']", "g2 ['4', '5', '6']"]
             >>> print Serie({'g1':[(1,2),(2,3)], 'g2':[(4,5),(5,6)]})
@@ -669,7 +756,7 @@ class Serie(object):
             >>> print Serie({'g1':[[1,2],[1,2]], 'g2':[[4,5],[4,5]]})
             ["g1 ['(1, 1)', '(2, 2)']", "g2 ['(4, 4)', '(5, 5)']"]
             >>> print Serie(Data(1,'d1'))
-            ["['d1: 1']"]
+            ["Group 1 ['d1: 1']"]
             >>> print Serie(Group([(1,2),(2,3)],'g1'))
             ["g1 ['(1, 2)', '(2, 3)']"]
         '''
@@ -683,6 +770,7 @@ class Serie(object):
         
         self.name = name
         self.group_list = serie
+        self.colors = colors
         
     # Name property
     @apply
@@ -693,17 +781,17 @@ class Serie(object):
              
             Usage:
             >>> s = Serie(13); s.name = 'name_test'; print s
-            name_test ["['13']"]
+            name_test ["Group 1 ['13']"]
             >>> s.name = 11; print s
-            ["['13']"]
+            ["Group 1 ['13']"]
             >>> s.name = 'other_name'; print s
-            other_name ["['13']"]
+            other_name ["Group 1 ['13']"]
             >>> s.name = None; print s
-            ["['13']"]
+            ["Group 1 ['13']"]
             >>> s.name = 'last_name'; print s
-            last_name ["['13']"]
+            last_name ["Group 1 ['13']"]
             >>> s.name = ''; print s
-            ["['13']"]
+            ["Group 1 ['13']"]
         '''
         def fget(self):
             '''
@@ -719,6 +807,37 @@ class Serie(object):
                 self.__name = name
             else:
                 self.__name = None
+        
+        return property(**locals())
+        
+        
+        
+    # Colors property
+    @apply
+    def colors():
+        doc = '''
+        >>> s = Serie()
+        >>> s.colors = [[1,1,1],[2,2,2,'linear'],[3,3,3,'gradient']]
+        >>> print s.colors
+        {'Color 2': [2, 2, 2, 'linear'], 'Color 3': [3, 3, 3, 'gradient'], 'Color 1': [1, 1, 1, 'solid']}
+        >>> s.colors = [[1,1,1],(2,2,2,'solid'),(3,3,3,'linear')]
+        >>> print s.colors
+        {'Color 2': [2, 2, 2, 'solid'], 'Color 3': [3, 3, 3, 'linear'], 'Color 1': [1, 1, 1, 'solid']}
+        >>> s.colors = {'a':[1,1,1],'b':(2,2,2,'solid'),'c':(3,3,3,'linear'), 'd':(4,4,4)}
+        >>> print s.colors
+        {'a': [1, 1, 1, 'solid'], 'c': [3, 3, 3, 'linear'], 'b': [2, 2, 2, 'solid'], 'd': [4, 4, 4, 'solid']}
+        '''
+        def fget(self):
+            '''
+                Return the color list
+            '''
+            return self.__colors.color_list
+        
+        def fset(self, colors):
+            '''
+                Format the color list to a dictionary
+            '''
+            self.__colors = Colors(colors)
         
         return property(**locals())
         
@@ -742,7 +861,7 @@ class Serie(object):
             >>> s = Serie(); s.range = (1,7); print s.range
             [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]
             >>> s = Serie(); s.range = (0,10,2); print s.range
-            [0.0, 2.0, 4.0, 6.0, 8.0, 8.0]
+            [0.0, 2.0, 4.0, 6.0, 8.0, 10.0]
             >>>
             >>> s = Serie(); s.range = [0]; print s.range
             [0.0]
@@ -838,17 +957,17 @@ class Serie(object):
             Usage:
             >>> s = Serie()
             >>> s.group_list = [1,2,3,4]; print s
-            ["['1', '2', '3', '4']"]
+            ["Group 1 ['1', '2', '3', '4']"]
             >>> s.group_list = [[1,2,3],[4,5,6]]; print s
-            ["['1', '2', '3']", "['4', '5', '6']"]
+            ["Group 1 ['1', '2', '3']", "Group 2 ['4', '5', '6']"]
             >>> s.group_list = (1,2); print s
-            ["['(1, 2)']"]
+            ["Group 1 ['(1, 2)']"]
             >>> s.group_list = [(1,2),(2,3)]; print s
-            ["['(1, 2)', '(2, 3)']"]
+            ["Group 1 ['(1, 2)', '(2, 3)']"]
             >>> s.group_list = [[(1,2),(2,3)],[(4,5),(5,6)]]; print s
-            ["['(1, 2)', '(2, 3)']", "['(4, 5)', '(5, 6)']"]
+            ["Group 1 ['(1, 2)', '(2, 3)']", "Group 2 ['(4, 5)', '(5, 6)']"]
             >>> s.group_list = [[[1,2,3],[1,2,3],[1,2,3]]]; print s
-            ["['(1, 1, 1)', '(2, 2, 2)', '(3, 3, 3)']"]
+            ["Group 1 ['(1, 1, 1)', '(2, 2, 2)', '(3, 3, 3)']"]
             >>> s.group_list = {'g1':[1,2,3], 'g2':[4,5,6]}; print s
             ["g1 ['1', '2', '3']", "g2 ['4', '5', '6']"]
             >>> s.group_list = {'g1':[(1,2),(2,3)], 'g2':[(4,5),(5,6)]}; print s
@@ -858,11 +977,11 @@ class Serie(object):
             >>> s.range = 10
             >>> s.group_list = lambda x:x*2
             >>> s.group_list = [lambda x:x*2, lambda x:x**2, lambda x:x**3]; print s
-            ["['0.0', '2.0', '4.0', '6.0', '8.0', '10.0', '12.0', '14.0', '16.0', '18.0']", "['0.0', '1.0', '4.0', '9.0', '16.0', '25.0', '36.0', '49.0', '64.0', '81.0']", "['0.0', '1.0', '8.0', '27.0', '64.0', '125.0', '216.0', '343.0', '512.0', '729.0']"]
+            ["Group 1 ['(0.0, 0.0)', '(1.0, 2.0)', '(2.0, 4.0)', '(3.0, 6.0)', '(4.0, 8.0)', '(5.0, 10.0)', '(6.0, 12.0)', '(7.0, 14.0)', '(8.0, 16.0)', '(9.0, 18.0)', '(10.0, 20.0)']", "Group 2 ['(0.0, 0.0)', '(1.0, 1.0)', '(2.0, 4.0)', '(3.0, 9.0)', '(4.0, 16.0)', '(5.0, 25.0)', '(6.0, 36.0)', '(7.0, 49.0)', '(8.0, 64.0)', '(9.0, 81.0)', '(10.0, 100.0)']", "Group 3 ['(0.0, 0.0)', '(1.0, 1.0)', '(2.0, 8.0)', '(3.0, 27.0)', '(4.0, 64.0)', '(5.0, 125.0)', '(6.0, 216.0)', '(7.0, 343.0)', '(8.0, 512.0)', '(9.0, 729.0)', '(10.0, 1000.0)']"]
             >>> s.group_list = {'linear':lambda x:x*2, 'square':lambda x:x**2, 'cubic':lambda x:x**3}; print s
-            ["cubic ['0.0', '1.0', '8.0', '27.0', '64.0', '125.0', '216.0', '343.0', '512.0', '729.0']", "linear ['0.0', '2.0', '4.0', '6.0', '8.0', '10.0', '12.0', '14.0', '16.0', '18.0']", "square ['0.0', '1.0', '4.0', '9.0', '16.0', '25.0', '36.0', '49.0', '64.0', '81.0']"]
+            ["cubic ['(0.0, 0.0)', '(1.0, 1.0)', '(2.0, 8.0)', '(3.0, 27.0)', '(4.0, 64.0)', '(5.0, 125.0)', '(6.0, 216.0)', '(7.0, 343.0)', '(8.0, 512.0)', '(9.0, 729.0)', '(10.0, 1000.0)']", "linear ['(0.0, 0.0)', '(1.0, 2.0)', '(2.0, 4.0)', '(3.0, 6.0)', '(4.0, 8.0)', '(5.0, 10.0)', '(6.0, 12.0)', '(7.0, 14.0)', '(8.0, 16.0)', '(9.0, 18.0)', '(10.0, 20.0)']", "square ['(0.0, 0.0)', '(1.0, 1.0)', '(2.0, 4.0)', '(3.0, 9.0)', '(4.0, 16.0)', '(5.0, 25.0)', '(6.0, 36.0)', '(7.0, 49.0)', '(8.0, 64.0)', '(9.0, 81.0)', '(10.0, 100.0)']"]
             >>> s.group_list = Data(1,'d1'); print s
-            ["['d1: 1']"]
+            ["Group 1 ['d1: 1']"]
             >>> s.group_list = Group([(1,2),(2,3)],'g1'); print s
             ["g1 ['(1, 2)', '(2, 3)']"]
         '''
@@ -935,7 +1054,30 @@ class Serie(object):
         '''
             Returns a copy of the Serie
         '''
-        pass
+        new_serie = Serie()
+        new_serie.__name = self.__name
+        if self.__range is not None:
+            new_serie.__range = self.__range[:]
+        #Add color property in the copy method
+        #self.__colors = None
+        
+        for group in self:
+            new_serie.add_group(group.copy())
+            
+        return new_serie
+    
+    def get_names(self):
+        '''
+            Returns a list of the names of all groups in the Serie
+        '''
+        names = []
+        for group in self:
+            if group.name is None:
+                names.append('Group '+str(group.index()+1))
+            else:
+                names.append(group.name)
+                
+        return names
 
     def __getitem__(self, key):
         '''
