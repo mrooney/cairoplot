@@ -902,22 +902,24 @@ class BarPlot(Plot):
         #Data for a BarPlot might be a List or a List of Lists.
         #On the first case, colors must be generated for all bars,
         #On the second, colors must be generated for each of the inner lists.
-        if hasattr(self.data[0], '__getitem__'):
-            length = max(len(series) for series in self.data)
+        
+        #if hasattr(self.data[0], '__getitem__'):
+        if len(self.serie) > 1:
+            length = max(len(group) for group in self.serie)
         else:
-            length = len( self.data )
+            length = len( self.serie.group_list )
             
         Plot.process_colors( self, series_colors, length, 'linear')
     
     def calc_boundaries(self):
         if not self.bounds[self.main_dir]:
             if self.stack:
-                max_data_value = max(sum(serie) for serie in self.data)
+                max_data_value = max(sum(group.to_list()) for group in self.serie)
             else:
-                max_data_value = max(max(serie) for serie in self.data)
+                max_data_value = max(max(group.to_list()) for group in self.serie)
             self.bounds[self.main_dir] = (0, max_data_value)
         if not self.bounds[other_direction(self.main_dir)]:
-            self.bounds[other_direction(self.main_dir)] = (0, len(self.data))
+            self.bounds[other_direction(self.main_dir)] = (0, len(self.serie))
     
     def calc_extents(self, direction):
         self.max_value[direction] = 0
@@ -941,9 +943,9 @@ class BarPlot(Plot):
         self.value_label = 0
         if self.display_values:
             if self.stack:
-                self.value_label = self.context.text_extents(str(max(sum(serie) for serie in self.data)))[2 + self.main_dir]
+                self.value_label = self.context.text_extents(str(max(sum(group.to_list()) for group in self.serie)))[2 + self.main_dir]
             else:
-                self.value_label = self.context.text_extents(str(max(max(serie) for serie in self.data)))[2 + self.main_dir]
+                self.value_label = self.context.text_extents(str(max(max(group.to_list()) for group in self.serie)))[2 + self.main_dir]
         if self.labels[self.main_dir]:
             self.plot_dimensions[self.main_dir] = self.dimensions[self.main_dir] - 2*self.borders[self.main_dir] - self.value_label
         else:
@@ -958,7 +960,7 @@ class BarPlot(Plot):
             self.steps[self.main_dir] = float(self.plot_dimensions[self.main_dir])/self.series_amplitude
         else:
             self.steps[self.main_dir] = 0.00
-        series_length = len(self.data)
+        series_length = len(self.serie)
         self.steps[other_dir] = float(self.plot_dimensions[other_dir])/(series_length + 0.1*(series_length + 1))
         self.space = 0.1*self.steps[other_dir]
         
@@ -1190,31 +1192,31 @@ class HorizontalBarPlot(BarPlot):
         self.context.set_source_rgba(*self.value_label_color)
         self.context.set_font_size(self.font_size * 0.8)
         if self.stack:
-            for i,series in enumerate(self.data):
-                value = sum(series)
+            for i,group in enumerate(self.serie):
+                value = sum(group.to_list())
                 height = self.context.text_extents(str(value))[3]
                 x = self.borders[HORZ] + value*self.steps[HORZ] + 2
                 y = self.borders[VERT] + (i+0.5)*self.steps[VERT] + (i+1)*self.space + height/2
                 self.context.move_to(x, y)
                 self.context.show_text(str(value))
         else:
-            for i,series in enumerate(self.data):
-                inner_step = self.steps[VERT]/len(series)
+            for i,group in enumerate(self.serie):
+                inner_step = self.steps[VERT]/len(group)
                 y0 = self.border + i*self.steps[VERT] + (i+1)*self.space
-                for number,key in enumerate(series):
-                    height = self.context.text_extents(str(key))[3]
-                    self.context.move_to(self.borders[HORZ] + key*self.steps[HORZ] + 2, y0 + 0.5*inner_step + height/2, )
-                    self.context.show_text(str(key))
+                for number,data in enumerate(group):
+                    height = self.context.text_extents(str(data.content))[3]
+                    self.context.move_to(self.borders[HORZ] + data.content*self.steps[HORZ] + 2, y0 + 0.5*inner_step + height/2, )
+                    self.context.show_text(str(data.content))
                     y0 += inner_step
 
     def render_plot(self):
         if self.stack:
-            for i,series in enumerate(self.data):
+            for i,group in enumerate(self.serie):
                 x0 = self.borders[HORZ]
                 y0 = self.borders[VERT] + i*self.steps[VERT] + (i+1)*self.space
-                for number,key in enumerate(series):
+                for number,data in enumerate(group):
                     if self.series_colors[number][4] in ('radial','linear') :
-                        linear = cairo.LinearGradient( key*self.steps[HORZ]/2, y0, key*self.steps[HORZ]/2, y0 + self.steps[VERT] )
+                        linear = cairo.LinearGradient( data.content*self.steps[HORZ]/2, y0, data.content*self.steps[HORZ]/2, y0 + self.steps[VERT] )
                         color = self.series_colors[number]
                         linear.add_color_stop_rgba(0.0, 3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0,1.0)
                         linear.add_color_stop_rgba(1.0, *color[:4])
@@ -1222,28 +1224,28 @@ class HorizontalBarPlot(BarPlot):
                     elif self.series_colors[number][4] == 'solid':
                         self.context.set_source_rgba(*self.series_colors[number][:4])
                     if self.rounded_corners:
-                        self.draw_rectangle(number, len(series), x0, y0, x0+key*self.steps[HORZ], y0+self.steps[VERT])
+                        self.draw_rectangle(number, len(group), x0, y0, x0+data.content*self.steps[HORZ], y0+self.steps[VERT])
                         self.context.fill()
                     else:
-                        self.context.rectangle(x0, y0, key*self.steps[HORZ], self.steps[VERT])
+                        self.context.rectangle(x0, y0, data.content*self.steps[HORZ], self.steps[VERT])
                         self.context.fill()
-                    x0 += key*self.steps[HORZ]
+                    x0 += data.content*self.steps[HORZ]
         else:
-            for i,series in enumerate(self.data):
-                inner_step = self.steps[VERT]/len(series)
+            for i,group in enumerate(self.serie):
+                inner_step = self.steps[VERT]/len(group)
                 x0 = self.borders[HORZ]
                 y0 = self.border + i*self.steps[VERT] + (i+1)*self.space
-                for number,key in enumerate(series):
-                    linear = cairo.LinearGradient(key*self.steps[HORZ]/2, y0, key*self.steps[HORZ]/2, y0 + inner_step)
+                for number,data in enumerate(group):
+                    linear = cairo.LinearGradient(data.content*self.steps[HORZ]/2, y0, data.content*self.steps[HORZ]/2, y0 + inner_step)
                     color = self.series_colors[number]
                     linear.add_color_stop_rgba(0.0, 3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0,1.0)
                     linear.add_color_stop_rgba(1.0, *color[:4])
                     self.context.set_source(linear)
-                    if self.rounded_corners and key != 0:
-                        BarPlot.draw_round_rectangle(self,x0, y0, x0 + key*self.steps[HORZ], y0 + inner_step)
+                    if self.rounded_corners and data.content != 0:
+                        BarPlot.draw_round_rectangle(self,x0, y0, x0 + data.content*self.steps[HORZ], y0 + inner_step)
                         self.context.fill()
                     else:
-                        self.context.rectangle(x0, y0, key*self.steps[HORZ], inner_step)
+                        self.context.rectangle(x0, y0, data.content*self.steps[HORZ], inner_step)
                         self.context.fill()
                     y0 += inner_step
     
@@ -1366,31 +1368,31 @@ class VerticalBarPlot(BarPlot):
         self.context.set_source_rgba(*self.value_label_color)
         self.context.set_font_size(self.font_size * 0.8)
         if self.stack:
-            for i,series in enumerate(self.data):
-                value = sum(series)
+            for i,group in enumerate(self.serie):
+                value = sum(group.to_list())
                 width = self.context.text_extents(str(value))[2]
                 x = self.borders[HORZ] + (i+0.5)*self.steps[HORZ] + (i+1)*self.space - width/2
                 y = value*self.steps[VERT] + 2
                 self.context.move_to(x, self.plot_top-y)
                 self.context.show_text(str(value))
         else:
-            for i,series in enumerate(self.data):
-                inner_step = self.steps[HORZ]/len(series)
+            for i,group in enumerate(self.serie):
+                inner_step = self.steps[HORZ]/len(group)
                 x0 = self.borders[HORZ] + i*self.steps[HORZ] + (i+1)*self.space
-                for number,key in enumerate(series):
-                    width = self.context.text_extents(str(key))[2]
-                    self.context.move_to(x0 + 0.5*inner_step - width/2, self.plot_top - key*self.steps[VERT] - 2)
-                    self.context.show_text(str(key))
+                for number,data in enumerate(group):
+                    width = self.context.text_extents(str(data.content))[2]
+                    self.context.move_to(x0 + 0.5*inner_step - width/2, self.plot_top - data.content*self.steps[VERT] - 2)
+                    self.context.show_text(str(data.content))
                     x0 += inner_step
 
     def render_plot(self):
         if self.stack:
-            for i,series in enumerate(self.data):
+            for i,group in enumerate(self.serie):
                 x0 = self.borders[HORZ] + i*self.steps[HORZ] + (i+1)*self.space
                 y0 = 0
-                for number,key in enumerate(series):
+                for number,data in enumerate(group):
                     if self.series_colors[number][4] in ('linear','radial'):
-                        linear = cairo.LinearGradient( x0, key*self.steps[VERT]/2, x0 + self.steps[HORZ], key*self.steps[VERT]/2 )
+                        linear = cairo.LinearGradient( x0, data.content*self.steps[VERT]/2, x0 + self.steps[HORZ], data.content*self.steps[VERT]/2 )
                         color = self.series_colors[number]
                         linear.add_color_stop_rgba(0.0, 3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0,1.0)
                         linear.add_color_stop_rgba(1.0, *color[:4])
@@ -1398,38 +1400,38 @@ class VerticalBarPlot(BarPlot):
                     elif self.series_colors[number][4] == 'solid':
                         self.context.set_source_rgba(*self.series_colors[number][:4])
                     if self.rounded_corners:
-                        self.draw_rectangle(number, len(series), x0, self.plot_top - y0 - key*self.steps[VERT], x0 + self.steps[HORZ], self.plot_top - y0)
+                        self.draw_rectangle(number, len(group), x0, self.plot_top - y0 - data.content*self.steps[VERT], x0 + self.steps[HORZ], self.plot_top - y0)
                         self.context.fill()
                     else:
-                        self.context.rectangle(x0, self.plot_top - y0 - key*self.steps[VERT], self.steps[HORZ], key*self.steps[VERT])
+                        self.context.rectangle(x0, self.plot_top - y0 - data.content*self.steps[VERT], self.steps[HORZ], data.content*self.steps[VERT])
                         self.context.fill()
-                    y0 += key*self.steps[VERT]
+                    y0 += data.content*self.steps[VERT]
         else:
-            for i,series in enumerate(self.data):
-                inner_step = self.steps[HORZ]/len(series)
+            for i,group in enumerate(self.serie):
+                inner_step = self.steps[HORZ]/len(group)
                 y0 = self.borders[VERT]
                 x0 = self.borders[HORZ] + i*self.steps[HORZ] + (i+1)*self.space
-                for number,key in enumerate(series):
+                for number,data in enumerate(group):
                     if self.series_colors[number][4] == 'linear':
-                        linear = cairo.LinearGradient( x0, key*self.steps[VERT]/2, x0 + inner_step, key*self.steps[VERT]/2 )
+                        linear = cairo.LinearGradient( x0, data.content*self.steps[VERT]/2, x0 + inner_step, data.content*self.steps[VERT]/2 )
                         color = self.series_colors[number]
                         linear.add_color_stop_rgba(0.0, 3.5*color[0]/5.0, 3.5*color[1]/5.0, 3.5*color[2]/5.0,1.0)
                         linear.add_color_stop_rgba(1.0, *color[:4])
                         self.context.set_source(linear)
                     elif self.series_colors[number][4] == 'solid':
                         self.context.set_source_rgba(*self.series_colors[number][:4])
-                    if self.rounded_corners and key != 0:
-                        BarPlot.draw_round_rectangle(self, x0, self.plot_top - key*self.steps[VERT], x0+inner_step, self.plot_top)
+                    if self.rounded_corners and data.content != 0:
+                        BarPlot.draw_round_rectangle(self, x0, self.plot_top - data.content*self.steps[VERT], x0+inner_step, self.plot_top)
                         self.context.fill()
                     elif self.three_dimension:
-                        self.draw_3d_rectangle_front(x0, self.plot_top - key*self.steps[VERT], x0+inner_step, self.plot_top, 5)
+                        self.draw_3d_rectangle_front(x0, self.plot_top - data.content*self.steps[VERT], x0+inner_step, self.plot_top, 5)
                         self.context.fill()
-                        self.draw_3d_rectangle_side(x0, self.plot_top - key*self.steps[VERT], x0+inner_step, self.plot_top, 5)
+                        self.draw_3d_rectangle_side(x0, self.plot_top - data.content*self.steps[VERT], x0+inner_step, self.plot_top, 5)
                         self.context.fill()
-                        self.draw_3d_rectangle_top(x0, self.plot_top - key*self.steps[VERT], x0+inner_step, self.plot_top, 5)
+                        self.draw_3d_rectangle_top(x0, self.plot_top - data.content*self.steps[VERT], x0+inner_step, self.plot_top, 5)
                         self.context.fill()
                     else:
-                        self.context.rectangle(x0, self.plot_top - key*self.steps[VERT], inner_step, key*self.steps[VERT])
+                        self.context.rectangle(x0, self.plot_top - data.content*self.steps[VERT], inner_step, data.content*self.steps[VERT])
                         self.context.fill()
                     
                     x0 += inner_step
