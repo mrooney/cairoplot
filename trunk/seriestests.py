@@ -4,17 +4,17 @@ import cairoplot
 from Series import Serie
 
 # Line plotting
-test_scatter_plot = 0
-test_dot_line_plot = 0
-test_function_plot = 0
+test_scatter_plot = 1
+test_dot_line_plot = 1
+test_function_plot = 1
 # Bar plotting
-test_vertical_bar_plot = 0
-test_horizontal_bar_plot = 0
+test_vertical_bar_plot = 1
+test_horizontal_bar_plot = 1
 # Pie plotting
-test_pie_plot = 0
-test_donut_plot = 0
+test_pie_plot = 1
+test_donut_plot = 1
 # Others
-test_gantt_chart = 0
+test_gantt_chart = 1
 test_themes = 1
 
 
@@ -39,7 +39,6 @@ if test_scatter_plot:
                  (17, -15, 25), (-2, -8, 5), (5, 20, 20), (18, 20, 23), (-20, -16, 17), (-19, -2, 9), (-11, 19, 18), (17, 16, 12), (-5, -20, 15),
                  (-20, -13, 10), (-3, 5, 20), (-1, 13, 17), (-11, -9, 11)])
     colors = [ (0,0,0,0.25), (1,0,0,0.75) ]
-    print 'teste'
     cairoplot.scatter_plot ( 'scatter_2_variable_radius_series.png', data = data, width = 500, height = 500, border = 20, 
                              axis = True, discrete = True, dots = 2, grid = True, 
                              x_title = "x axis", y_title = "y axis", circle_colors = colors )
@@ -220,7 +219,7 @@ if test_donut_plot :
 
 if test_gantt_chart :
     #Default Plot
-    pieces = Serie([[(0.5, 5.5)], [(0, 4), (6, 8)], [(5.5, 7)], [(7, 9)]])
+    pieces = Serie([(0.5, 5.5), [(0, 4), (6, 8)], (5.5, 7), (7, 9)])
     x_labels = [ 'teste01', 'teste02', 'teste03', 'teste04']
     y_labels = [ '0001', '0002', '0003', '0004', '0005', '0006', '0007', '0008', '0009', '0010' ]
     colors = [ (1.0, 0.0, 0.0), (1.0, 0.7, 0.0), (1.0, 1.0, 0.0), (0.0, 1.0, 0.0) ]

@@ -968,6 +968,8 @@ class Serie(object):
             ["Group 1 ['(1, 2)', '(2, 3)']", "Group 2 ['(4, 5)', '(5, 6)']"]
             >>> s.group_list = [[[1,2,3],[1,2,3],[1,2,3]]]; print s
             ["Group 1 ['(1, 1, 1)', '(2, 2, 2)', '(3, 3, 3)']"]
+            >>> s.group_list = [(0.5,5.5) , [(0,4),(6,8)] , (5.5,7) , (7,9)]; print s
+            ["Group 1 ['(0.5, 5.5)']", "Group 2 ['(0, 4)', '(6, 8)']", "Group 3 ['(5.5, 7)']", "Group 4 ['(7, 9)']"]
             >>> s.group_list = {'g1':[1,2,3], 'g2':[4,5,6]}; print s
             ["g1 ['1', '2', '3']", "g2 ['4', '5', '6']"]
             >>> s.group_list = {'g1':[(1,2),(2,3)], 'g2':[(4,5),(5,6)]}; print s
@@ -1004,15 +1006,27 @@ class Serie(object):
             # List or Tuple
             elif type(serie) in LISTTYPES:
                 self.__group_list = []
-                # List of numbers
-                if type(serie[0]) in NUMTYPES or type(serie[0]) is tuple:
-                    print serie
-                    self.add_group(serie)
-                    
-                # List of anything else
-                else:
+                
+                is_function = lambda x: callable(x)
+                # Groups
+                if list in map(type, serie) or max(map(is_function, serie)):
                     for group in serie:
                         self.add_group(group)
+                        
+                # single group
+                else:
+                    self.add_group(serie)
+                
+                #old code
+                ## List of numbers
+                #if type(serie[0]) in NUMTYPES or type(serie[0]) is tuple:
+                #    print serie
+                #    self.add_group(serie)
+                #    
+                ## List of anything else
+                #else:
+                #    for group in serie:
+                #        self.add_group(group)
             
             # Dict representing serie of groups
             elif type(serie) is dict:
@@ -1050,6 +1064,7 @@ class Serie(object):
             # Auto naming groups
             if group.name is None:
                 group.name = "Group "+str(len(self.__group_list)+1)
+            
             self.__group_list.append(group)
             self.__group_list[-1].parent = self
             
