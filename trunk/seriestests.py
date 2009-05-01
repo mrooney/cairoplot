@@ -11,11 +11,11 @@ test_function_plot = 0
 test_vertical_bar_plot = 0
 test_horizontal_bar_plot = 0
 # Pie plotting
-test_donut_plot = 0
 test_pie_plot = 0
+test_donut_plot = 0
 # Others
 test_gantt_chart = 0
-test_themes = 0
+test_themes = 1
 
 
 if test_scatter_plot:
@@ -114,15 +114,15 @@ if test_function_plot :
 
 if test_vertical_bar_plot:
     #Passing a dictionary
-    data = { 'teste00' : [27], 'teste01' : [10], 'teste02' : [18], 'teste03' : [5], 'teste04' : [1], 'teste05' : [22] }
+    data = Serie({ 'teste00' : [27], 'teste01' : [10], 'teste02' : [18], 'teste03' : [5], 'teste04' : [1], 'teste05' : [22] })
     cairoplot.vertical_bar_plot ( 'vbar_0_dictionary_series.png', data, 400, 300, border = 20, grid = True, rounded_corners = True )
 
     #Display values
-    data = { 'teste00' : [27], 'teste01' : [10], 'teste02' : [18], 'teste03' : [5], 'teste04' : [1], 'teste05' : [22] }
+    data = Serie({ 'teste00' : [27], 'teste01' : [10], 'teste02' : [18], 'teste03' : [5], 'teste04' : [1], 'teste05' : [22] })
     cairoplot.vertical_bar_plot ( 'vbar_0_dictionary_series.png', data, 400, 300, border = 20, display_values = True, grid = True, rounded_corners = True )
 
     #Using default, rounded corners and 3D visualization
-    data = [ [0, 3, 11], [8, 9, 21], [13, 10, 9], [2, 30, 8] ]
+    data = Serie([ [0, 3, 11], [8, 9, 21], [13, 10, 9], [2, 30, 8] ])
     colors = [ (1,0.2,0), (1,0.7,0), (1,1,0) ]
     series_labels = ["red", "orange", "yellow"]
     cairoplot.vertical_bar_plot ( 'vbar_1_default_series.png', data, 400, 300, border = 20, grid = True, rounded_corners = False, colors = "yellow_orange_red" )
@@ -130,11 +130,11 @@ if test_vertical_bar_plot:
     cairoplot.vertical_bar_plot ( 'vbar_3_3D_series.png', data, 400, 300, border = 20, series_labels = series_labels, grid = True, three_dimension = True, colors = colors )
 
     #Mixing groups and columns
-    data = [ [1], [2], [3,4], [4], [5], [6], [7], [8], [9], [10] ]
+    data = Serie([ [1], [2], [3,4], [4], [5], [6], [7], [8], [9], [10] ])
     cairoplot.vertical_bar_plot ( 'vbar_4_group_series.png', data, 400, 300, border = 20, grid = True )
 
     #Using no labels, horizontal and vertical labels
-    data = [[3,4], [4,8], [5,3], [9,1]]
+    data = Serie([[3,4], [4,8], [5,3], [9,1]])
     y_labels = [ "line1", "line2", "line3", "line4", "line5", "line6" ]
     x_labels = [ "group1", "group2", "group3", "group4" ]
     cairoplot.vertical_bar_plot ( 'vbar_5_no_labels_series.png', data, 600, 200, border = 20, grid = True )
@@ -143,12 +143,12 @@ if test_vertical_bar_plot:
     cairoplot.vertical_bar_plot ( 'vbar_8_hy_labels_series.png', data, 600, 200, border = 20, display_values = True, grid = True, x_labels = x_labels, y_labels = y_labels )
     
     #Large data set
-    data = [[10*random.random()] for x in range(50)]
+    data = Serie([[10*random.random()] for x in range(50)])
     x_labels = ["large label name oh my god it's big" for x in data]
     cairoplot.vertical_bar_plot ( 'vbar_9_large_series.png', data, 1000, 800, border = 20, grid = True, rounded_corners = True, x_labels = x_labels )
     
     #Stack vertical
-    data = [ [6, 4, 10], [8, 9, 3], [1, 10, 9], [2, 7, 11] ]
+    data = Serie([ [6, 4, 10], [8, 9, 3], [1, 10, 9], [2, 7, 11] ])
     colors = [ (1,0.2,0), (1,0.7,0), (1,1,0) ]
     x_labels = ["teste1", "teste2", "testegrande3", "testegrande4"]
     cairoplot.vertical_bar_plot ( 'vbar_10_stack_series.png', data, 400, 300, border = 20, display_values = True, grid = True, rounded_corners = True, stack = True, 
@@ -157,11 +157,11 @@ if test_vertical_bar_plot:
 
 if test_horizontal_bar_plot:
     #Passing a dictionary
-    data = { 'teste00' : [27], 'teste01' : [10], 'teste02' : [18], 'teste03' : [5], 'teste04' : [1], 'teste05' : [22] }
+    data = Serie({ 'teste00' : [27], 'teste01' : [10], 'teste02' : [18], 'teste03' : [5], 'teste04' : [1], 'teste05' : [22] })
     cairoplot.horizontal_bar_plot ( 'hbar_0_dictionary_series.png', data, 400, 300, border = 20, display_values = True, grid = True, rounded_corners = True )
 
     #Using default, rounded corners and 3D visualization
-    data = [ [0, 3, 11], [8, 9, 21], [13, 10, 9], [2, 30, 8] ]
+    data = Serie([ [0, 3, 11], [8, 9, 21], [13, 10, 9], [2, 30, 8] ])
     colors = [ (1,0.2,0), (1,0.7,0), (1,1,0) ]
     series_labels = ["red", "orange", "yellow"]
     cairoplot.horizontal_bar_plot ( 'hbar_1_default_series.png', data, 400, 300, border = 20, grid = True, rounded_corners = False, colors = "yellow_orange_red" )
@@ -169,12 +169,12 @@ if test_horizontal_bar_plot:
 
 
     #Mixing groups and columns
-    data = [ [1], [2], [3,4], [4], [5], [6], [7], [8], [9], [10] ]
+    data = ([ [1], [2], [3,4], [4], [5], [6], [7], [8], [9], [10] ])
     cairoplot.horizontal_bar_plot ( 'hbar_4_group_series.png', data, 400, 300, border = 20, grid = True )
 
     #Using no labels, horizontal and vertical labels
     series_labels = ["data11", "data22"]
-    data = [[3,4], [4,8], [5,3], [9,1]]
+    data = Serie([[3,4], [4,8], [5,3], [9,1]])
     x_labels = [ "line1", "line2", "line3", "line4", "line5", "line6" ]
     y_labels = [ "group1", "group2", "group3", "group4" ]
     cairoplot.horizontal_bar_plot ( 'hbar_5_no_labels_series.png', data, 600, 200, border = 20, series_labels = series_labels, grid = True )
@@ -183,16 +183,28 @@ if test_horizontal_bar_plot:
     cairoplot.horizontal_bar_plot ( 'hbar_8_hy_labels_series.png', data, 600, 200, border = 20, series_labels = series_labels, display_values = True, grid = True, x_labels = x_labels, y_labels = y_labels )
 
     #Large data set
-    data = [[10*random.random()] for x in range(25)]
+    data = Serie([[10*random.random()] for x in range(25)])
     x_labels = ["large label name oh my god it's big" for x in data]
     cairoplot.horizontal_bar_plot ( 'hbar_9_large_series.png', data, 1000, 800, border = 20, grid = True, rounded_corners = True, x_labels = x_labels )
 
     #Stack horizontal
-    data = [ [6, 4, 10], [8, 9, 3], [1, 10, 9], [2, 7, 11] ]
+    data = Serie([ [6, 4, 10], [8, 9, 3], [1, 10, 9], [2, 7, 11] ])
     colors = [ (1,0.2,0), (1,0.7,0), (1,1,0) ]
     y_labels = ["teste1", "teste2", "testegrande3", "testegrande4"]
     cairoplot.horizontal_bar_plot ( 'hbar_10_stack_series.png', data, 400, 300, border = 20, display_values = True, grid = True, rounded_corners = True, stack = True, 
                                     y_labels = y_labels, colors = colors )
+
+if test_pie_plot :
+    #Define a new backgrond
+    background = cairo.LinearGradient(300, 0, 300, 400)
+    background.add_color_stop_rgb(0.0,0.7,0.0,0.0)
+    background.add_color_stop_rgb(1.0,0.3,0.0,0.0)
+
+    #Plot data
+    data = {"orcs" : 100, "goblins" : 230, "elves" : 50 , "demons" : 43, "humans" : 332}
+    cairoplot.pie_plot( "pie_1_default_series.png", data, 600, 400 )
+    cairoplot.pie_plot( "pie_2_gradient_shadow_series.png", data, 600, 400, gradient = True, shadow = True )
+    cairoplot.pie_plot( "pie_3_background_series.png", data, 600, 400, background = background, gradient = True, shadow = True ) 
 
 if test_donut_plot :
     #Define a new backgrond
@@ -208,33 +220,22 @@ if test_donut_plot :
 
 if test_gantt_chart :
     #Default Plot
-    pieces = [ (0.5,5.5) , [(0,4),(6,8)] , (5.5,7) , (7,9)]
+    pieces = Serie([[(0.5, 5.5)], [(0, 4), (6, 8)], [(5.5, 7)], [(7, 9)]])
     x_labels = [ 'teste01', 'teste02', 'teste03', 'teste04']
     y_labels = [ '0001', '0002', '0003', '0004', '0005', '0006', '0007', '0008', '0009', '0010' ]
     colors = [ (1.0, 0.0, 0.0), (1.0, 0.7, 0.0), (1.0, 1.0, 0.0), (0.0, 1.0, 0.0) ]
     cairoplot.gantt_chart('gantt_1_default_series.png', pieces, 500, 350, x_labels, y_labels, colors)
-
-
-if test_pie_plot :
-    #Define a new backgrond
-    background = cairo.LinearGradient(300, 0, 300, 400)
-    background.add_color_stop_rgb(0.0,0.7,0.0,0.0)
-    background.add_color_stop_rgb(1.0,0.3,0.0,0.0)
-
-    #Plot data
-    data = {"orcs" : 100, "goblins" : 230, "elves" : 50 , "demons" : 43, "humans" : 332}
-    cairoplot.pie_plot( "pie_1_default_series.png", data, 600, 400 )
-    cairoplot.pie_plot( "pie_2_gradient_shadow_series.png", data, 600, 400, gradient = True, shadow = True )
-    cairoplot.pie_plot( "pie_3_background_series.png", data, 600, 400, background = background, gradient = True, shadow = True ) 
     
 if test_themes :    
-    data = [[1,2,3,4,5,6,7,8,9,10,11,12,13,14]]
-    cairoplot.vertical_bar_plot ( 'bar_color_themes_series.png', data, 400, 300, border = 20, grid = True, colors="rainbow" )
+    data = Serie([[1,2,3,4,5,6,7,8,9,10,11,12,13,14]])
+    cairoplot.vertical_bar_plot ( 'bar_1_color_themes_series.png', data, 400, 300, border = 20, grid = True, colors="rainbow" )
     
-    data = [[1,2,3,4,5,6,7,8,9,10,11,12,13,14]]
-    cairoplot.vertical_bar_plot ( 'bar_color_themes_series.png', data, 400, 300, background = "white light_gray", border = 20, grid = True, colors="rainbow" )
+    data = Serie([[1,2,3,4,5,6,7,8,9,10,11,12,13,14]])
+    cairoplot.vertical_bar_plot ( 'bar_2_color_themes_series.png', data, 400, 300, background = "white light_gray", border = 20, grid = True, colors="rainbow" )
     
-    data = [ lambda x : 1, lambda y : y**2, lambda z : -z**2 ]
+    data = Serie()
+    data.range = (0,10,0.1)
+    data.group_list = [ lambda x : 1, lambda y : y**2, lambda z : -z**2 ]
     cairoplot.function_plot( 'function_color_themes_series.png', data, 400, 300, grid = True, series_colors = ["red", "orange", "yellow"], step = 0.1 )
     
     #Scatter x DotLine
@@ -244,7 +245,7 @@ if test_themes :
     h = [10*math.sin(x) for x in t]
     erx = [0.1*random.random() for x in t]
     ery = [5*random.random() for x in t]
-    data = {"exp" : [t,f], "cos" : [t,g], "sin" : [t,h]}
+    data = Serie({"exp" : [t,f], "cos" : [t,g], "sin" : [t,h]})
     series_colors = [ (1,0,0), (0,0,0) ]
     cairoplot.scatter_plot ( 'scatter_color_themes_series.png', data = data, errorx = [erx,erx], errory = [ery,ery], width = 800, height = 600, border = 20, 
                              axis = True, discrete = False, dots = 5, grid = True, 

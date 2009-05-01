@@ -10,11 +10,11 @@ test_function_plot = 0
 test_vertical_bar_plot = 0
 test_horizontal_bar_plot = 0
 # Pie plotting
-test_donut_plot = 0
 test_pie_plot = 0
+test_donut_plot = 0
 # Others
 test_gantt_chart = 0
-test_themes = 0
+test_themes = 1
 
 
 if test_scatter_plot:
@@ -191,6 +191,18 @@ if test_horizontal_bar_plot:
     cairoplot.horizontal_bar_plot ( 'hbar_10_stack.png', data, 400, 300, border = 20, display_values = True, grid = True, rounded_corners = True, stack = True, 
                                     y_labels = y_labels, colors = colors )
 
+if test_pie_plot :
+    #Define a new backgrond
+    background = cairo.LinearGradient(300, 0, 300, 400)
+    background.add_color_stop_rgb(0.0,0.7,0.0,0.0)
+    background.add_color_stop_rgb(1.0,0.3,0.0,0.0)
+
+    #Plot data
+    data = {"orcs" : 100, "goblins" : 230, "elves" : 50 , "demons" : 43, "humans" : 332}
+    cairoplot.pie_plot( "pie_1_default.png", data, 600, 400 )
+    cairoplot.pie_plot( "pie_2_gradient_shadow.png", data, 600, 400, gradient = True, shadow = True )
+    cairoplot.pie_plot( "pie_3_background.png", data, 600, 400, background = background, gradient = True, shadow = True ) 
+
 if test_donut_plot :
     #Define a new backgrond
     background = cairo.LinearGradient(300, 0, 300, 400)
@@ -205,31 +217,19 @@ if test_donut_plot :
 
 if test_gantt_chart :
     #Default Plot
-    pieces = [ (0.5,5.5) , [(0,4),(6,8)] , (5.5,7) , (7,9)]
+    pieces = [[(0.5, 5.5)], [(0, 4), (6, 8)], [(5.5, 7)], [(7, 9)]]
     x_labels = [ 'teste01', 'teste02', 'teste03', 'teste04']
     y_labels = [ '0001', '0002', '0003', '0004', '0005', '0006', '0007', '0008', '0009', '0010' ]
     colors = [ (1.0, 0.0, 0.0), (1.0, 0.7, 0.0), (1.0, 1.0, 0.0), (0.0, 1.0, 0.0) ]
     cairoplot.gantt_chart('gantt_1_default.png', pieces, 500, 350, x_labels, y_labels, colors)
 
-
-if test_pie_plot :
-    #Define a new backgrond
-    background = cairo.LinearGradient(300, 0, 300, 400)
-    background.add_color_stop_rgb(0.0,0.7,0.0,0.0)
-    background.add_color_stop_rgb(1.0,0.3,0.0,0.0)
-
-    #Plot data
-    data = {"orcs" : 100, "goblins" : 230, "elves" : 50 , "demons" : 43, "humans" : 332}
-    cairoplot.pie_plot( "pie_1_default.png", data, 600, 400 )
-    cairoplot.pie_plot( "pie_2_gradient_shadow.png", data, 600, 400, gradient = True, shadow = True )
-    cairoplot.pie_plot( "pie_3_background.png", data, 600, 400, background = background, gradient = True, shadow = True ) 
     
 if test_themes :    
     data = [[1,2,3,4,5,6,7,8,9,10,11,12,13,14]]
-    cairoplot.vertical_bar_plot ( 'bar_color_themes.png', data, 400, 300, border = 20, grid = True, colors="rainbow" )
+    cairoplot.vertical_bar_plot ( 'bar_1_color_themes.png', data, 400, 300, border = 20, grid = True, colors="rainbow" )
     
     data = [[1,2,3,4,5,6,7,8,9,10,11,12,13,14]]
-    cairoplot.vertical_bar_plot ( 'bar_color_themes.png', data, 400, 300, background = "white light_gray", border = 20, grid = True, colors="rainbow" )
+    cairoplot.vertical_bar_plot ( 'bar_2_color_themes.png', data, 400, 300, background = "white light_gray", border = 20, grid = True, colors="rainbow" )
     
     data = [ lambda x : 1, lambda y : y**2, lambda z : -z**2 ]
     cairoplot.function_plot( 'function_color_themes.png', data, 400, 300, grid = True, series_colors = ["red", "orange", "yellow"], step = 0.1 )

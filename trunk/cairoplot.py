@@ -213,7 +213,8 @@ class Plot(object):
     def process_colors( self, series_colors, length = None, mode = 'solid' ):
         #series_colors might be None, a theme, a string of colors names or a string of color tuples
         if length is None :
-            length = len( self.serie )
+            length = len( self.serie.to_list() )
+            
         #no colors passed
         if not series_colors:
             #Randomize colors
@@ -223,11 +224,13 @@ class Plot(object):
             if not hasattr( series_colors, "__iter__" ):
                 theme = series_colors
                 self.series_colors = colors_from_theme( theme.lower(), length )
+                
             #Theme pattern and mode
             elif not hasattr(series_colors, '__delitem__') and not hasattr( series_colors[0], "__iter__" ):
                 theme = series_colors[0]
                 mode = series_colors[1]
                 self.series_colors = colors_from_theme( theme.lower(), length, mode )
+                    
             #List
             else:
                 self.series_colors = series_colors
@@ -354,7 +357,6 @@ class ScatterPlot( Plot ):
         return out_data
     
     def load_series(self, data, x_labels = None, y_labels = None, series_colors=None):
-        print type(data)
         #TODO: In cairoplot2.0 keep only the Series instances
         # Convert Data and Group to Serie
         if isinstance(data, Data) or isinstance(data, Group):
@@ -678,7 +680,6 @@ class ScatterPlot( Plot ):
             x0 = self.borders[HORZ] - self.bounds[HORZ][0]*self.horizontal_step
             y0 = self.borders[VERT] - self.bounds[VERT][0]*self.vertical_step
             radius = self.dots
-            print 'var',self.variable_radius
             for number, group in  enumerate (self.serie):
                 cr.set_source_rgba(*self.series_colors[number][:4])
                 for data in group :
@@ -936,12 +937,14 @@ class BarPlot(Plot):
         #On the first case, colors must be generated for all bars,
         #On the second, colors must be generated for each of the inner lists.
         
+        #TODO: Didn't get it...
         #if hasattr(self.data[0], '__getitem__'):
-        if len(self.serie) > 1:
-            length = max(len(group) for group in self.serie)
-        else:
-            length = len( self.serie.group_list )
-            
+        #    length = max(len(series) for series in self.data)
+        #else:
+        #    length = len( self.data )
+        
+        length = max(len(group) for group in self.serie)
+        
         Plot.process_colors( self, series_colors, length, 'linear')
     
     def calc_boundaries(self):
@@ -1651,6 +1654,7 @@ class StreamChart(VerticalBarPlot):
             
 
 class PiePlot(Plot):
+    #TODO: Check the old cairoplot, graphs aren't matching
     def __init__ (self,
             surface = None, 
             data = None, 
@@ -1663,14 +1667,18 @@ class PiePlot(Plot):
 
         Plot.__init__( self, surface, data, width, height, background, series_colors = colors )
         self.center = (self.dimensions[HORZ]/2, self.dimensions[VERT]/2)
-        self.total = sum(self.data)
+        self.total = sum( self.serie.to_list() )
         self.radius = min(self.dimensions[HORZ]/3,self.dimensions[VERT]/3)
         self.gradient = gradient
         self.shadow = shadow
+    
+    def sort_function(x,y):
+        return x.content - y.content
 
     def load_series(self, data, x_labels=None, y_labels=None, series_colors=None):
         Plot.load_series(self, data, x_labels, y_labels, series_colors)
-        self.data = sorted(self.data)
+        # Already done inside series
+        #self.data = sorted(self.data)
 
     def draw_piece(self, angle, next_angle):
         self.context.move_to(self.center[0],self.center[1])
@@ -1700,7 +1708,10 @@ class PiePlot(Plot):
         x0,y0 = self.center
         cr = self.context
         for number,key in enumerate(self.series_labels):
-            next_angle = angle + 2.0*math.pi*self.data[number]/self.total
+            # self.data[number] should be just a number
+            data = sum(self.serie[number].to_list())
+            
+            next_angle = angle + 2.0*math.pi*data/self.total
             cr.set_source_rgba(*self.series_colors[number][:4])
             w = cr.text_extents(key)[2]
             if (angle + next_angle)/2 < math.pi/2 or (angle + next_angle)/2 > 3*math.pi/2:
@@ -1715,8 +1726,10 @@ class PiePlot(Plot):
         next_angle = 0
         x0,y0 = self.center
         cr = self.context
-        for number,series in enumerate(self.data):
-            next_angle = angle + 2.0*math.pi*series/self.total
+        for number,group in enumerate(self.serie):
+            # Group should be just a number
+            data = sum(group.to_list())
+            next_angle = angle + 2.0*math.pi*data/self.total
             if self.gradient or self.series_colors[number][4] in ('linear','radial'):
                 gradient_color = cairo.RadialGradient(self.center[0], self.center[1], 0, self.center[0], self.center[1], self.radius)
                 gradient_color.add_color_stop_rgba(0.3, *self.series_colors[number][:4])
@@ -1752,7 +1765,7 @@ class DonutPlot(PiePlot):
         Plot.__init__( self, surface, data, width, height, background, series_colors = colors )
         
         self.center = ( self.dimensions[HORZ]/2, self.dimensions[VERT]/2 )
-        self.total = sum( self.data )
+        self.total = sum( self.serie.to_list() )
         self.radius = min( self.dimensions[HORZ]/3,self.dimensions[VERT]/3 )
         self.inner_radius = inner_radius*self.radius
         
@@ -1796,13 +1809,15 @@ class GanttChart (Plot) :
         self.calc_boundaries()
 
     def calc_boundaries(self):
-        self.bounds[HORZ] = (0,len(self.data))
-        for item in self.data:
-            if hasattr(item, "__delitem__"):
-                for sub_item in item:
-                    end_pos = max(sub_item)
-            else:
-                end_pos = max(item)
+        self.bounds[HORZ] = (0,len(self.serie))
+        end_pos = max(self.serie.to_list())
+        
+        #for group in self.serie:
+        #    if hasattr(item, "__delitem__"):
+        #        for sub_item in item:
+        #            end_pos = max(sub_item)
+        #    else:
+        #        end_pos = max(item)
         self.bounds[VERT] = (0,end_pos)
 
     def calc_extents(self, direction):
@@ -1839,7 +1854,7 @@ class GanttChart (Plot) :
         cr.set_source_rgba(255,255,255)
         cr.rectangle(0,0,self.dimensions[HORZ], self.dimensions[VERT])
         cr.fill()
-        for number,item in enumerate(self.data):
+        for number,group in enumerate(self.serie):
             linear = cairo.LinearGradient(self.dimensions[HORZ]/2, self.borders[VERT] + number*self.vertical_step, 
                                           self.dimensions[HORZ]/2, self.borders[VERT] + (number+1)*self.vertical_step)
             linear.add_color_stop_rgba(0,1.0,1.0,1.0,1.0)
@@ -1953,21 +1968,13 @@ class GanttChart (Plot) :
         self.draw_circular_shadow(x1-4, y1-4, 4, 0, math.pi/2, (1,0), shadow)
 
     def render_plot(self):
-        for number,item in enumerate(self.data):
-            if hasattr(item, "__delitem__") :
-                for space in item:
-                    self.render_rectangle(self.borders[HORZ] + space[0]*self.horizontal_step, 
-                                          self.borders[VERT] + number*self.vertical_step + self.vertical_step/4.0,
-                                          self.borders[HORZ] + space[1]*self.horizontal_step, 
-                                          self.borders[VERT] + number*self.vertical_step + 3.0*self.vertical_step/4.0, 
-                                          self.series_colors[number])
-            else:
-                space = item
-                self.render_rectangle(self.borders[HORZ] + space[0]*self.horizontal_step, 
-                                      self.borders[VERT] + number*self.vertical_step + self.vertical_step/4.0,
-                                      self.borders[HORZ] + space[1]*self.horizontal_step, 
-                                      self.borders[VERT] + number*self.vertical_step + 3.0*self.vertical_step/4.0, 
-                                      self.series_colors[number])
+        for index,group in enumerate(self.serie):
+            for data in group:
+                self.render_rectangle(self.borders[HORZ] + data.content[0]*self.horizontal_step, 
+                                      self.borders[VERT] + index*self.vertical_step + self.vertical_step/4.0,
+                                      self.borders[HORZ] + data.content[1]*self.horizontal_step, 
+                                      self.borders[VERT] + index*self.vertical_step + 3.0*self.vertical_step/4.0, 
+                                      self.series_colors[index])
 
 # Function definition
 

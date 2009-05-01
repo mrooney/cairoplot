@@ -995,6 +995,8 @@ class Serie(object):
             '''
                 Controls the input of a valid group list.
             '''
+            #TODO: Add support to the following strem of data: [ (0.5,5.5) , [(0,4),(6,8)] , (5.5,7) , (7,9)]
+            
             # Type: None
             if serie is None:
                 self.__group_list = []
@@ -1004,6 +1006,7 @@ class Serie(object):
                 self.__group_list = []
                 # List of numbers
                 if type(serie[0]) in NUMTYPES or type(serie[0]) is tuple:
+                    print serie
                     self.add_group(serie)
                     
                 # List of anything else
@@ -1078,6 +1081,19 @@ class Serie(object):
                 names.append(group.name)
                 
         return names
+        
+    def to_list(self):
+        '''
+            Returns a list with the content of all groups and data
+        '''
+        big_list = []
+        for group in self:
+            for data in group:
+                if type(data.content) in NUMTYPES:
+                    big_list.append(data.content)
+                else:
+                    big_list = big_list + list(data.content)
+        return big_list
 
     def __getitem__(self, key):
         '''
