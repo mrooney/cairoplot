@@ -1,5 +1,9 @@
 
 2009-03-10  Rodrigo Araújo <alf.rodrigo@gmail.com>
+        * CairoPlot.py: Merged Magnun's branch. Series, Group and Data 
+        		 input formats are now available.
+
+2009-03-10  Rodrigo Araújo <alf.rodrigo@gmail.com>
         * CairoPlot.py: Color themes now work correctly for backgrounds.
         		 besides allowing the user to change the background
         		 color using strings, it's also possible to define
