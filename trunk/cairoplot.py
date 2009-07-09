@@ -34,7 +34,7 @@ __version__ = 1.1
 import cairo
 import math
 import random
-from Series import Series, Group, Data
+from series import Series, Group, Data
 
 HORZ = 0
 VERT = 1

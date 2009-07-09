@@ -1,5 +1,9 @@
 
-2009-03-10  Rodrigo Araújo <alf.rodrigo@gmail.com>
+2009-07-09  Rodrigo Araújo <alf.rodrigo@gmail.com>
+        * CairoPlot.py: Correctiong naming conventions (Series.py ->
+        		 series.py). Added series.py to setup.py.
+
+2009-07-05  Rodrigo Araújo <alf.rodrigo@gmail.com>
         * CairoPlot.py: Merged Magnun's branch. Series, Group and Data 
         		 input formats are now available.
 
