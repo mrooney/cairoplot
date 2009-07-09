@@ -3,18 +3,18 @@ import cairo, math, random
 import cairoplot
 
 # Line plotting
-test_scatter_plot = 0
-test_dot_line_plot = 0
-test_function_plot = 0
+test_scatter_plot = 1
+test_dot_line_plot = 1
+test_function_plot = 1
 # Bar plotting
-test_vertical_bar_plot = 0
+test_vertical_bar_plot = 1
 test_horizontal_bar_plot = 1
 # Pie plotting
-test_pie_plot = 0
-test_donut_plot = 0
+test_pie_plot = 1
+test_donut_plot = 1
 # Others
-test_gantt_chart = 0
-test_themes = 0
+test_gantt_chart = 1
+test_themes = 1
 
 
 if test_scatter_plot:
@@ -162,12 +162,11 @@ if test_horizontal_bar_plot:
     cairoplot.horizontal_bar_plot ( 'hbar_0_dictionary.svg', data, 400, 300, border = 20, display_values = True, grid = True, rounded_corners = True )
 
     #Using default, rounded corners and 3D visualization
-    data = [ [10, 3, 11], [8, 9, 21], [13, 10, 9], [2, 30, 8] ]
+    data = [ [0, 3, 11], [8, 9, 21], [13, 10, 9], [2, 30, 8] ]
     colors = [ (1,0.2,0), (1,0.7,0), (1,1,0) ]
     series_labels = ["red", "orange", "yellow"]
-    y_labels = ["group 1", "group 2", "group 3", "group 4"]
-    cairoplot.horizontal_bar_plot ( 'hbar_1_default.svg', data, 400, 300, border = 20, grid = True, rounded_corners = False, colors = colors )
-    cairoplot.horizontal_bar_plot ( 'hbar_2_rounded.png', data, 400, 300, border = 20, grid = True, rounded_corners = True, y_labels = y_labels, colors = "yellow_orange_red" )
+    cairoplot.horizontal_bar_plot ( 'hbar_1_default.svg', data, 400, 300, border = 20, grid = True, rounded_corners = False, colors = "yellow_orange_red" )
+    cairoplot.horizontal_bar_plot ( 'hbar_2_rounded.svg', data, 400, 300, border = 20, series_labels = series_labels, display_values = True, grid = True, rounded_corners = True, colors = colors )
 
 
     #Mixing groups and columns
@@ -207,10 +206,6 @@ if test_pie_plot :
     cairoplot.pie_plot( "pie_1_default.svg", data, 600, 400 )
     cairoplot.pie_plot( "pie_2_gradient_shadow.svg", data, 600, 400, gradient = True, shadow = True )
     cairoplot.pie_plot( "pie_3_background.svg", data, 600, 400, background = background, gradient = True, shadow = True ) 
-    
-    data = {"orcs" : 30, "goblins" : 30, "elves" : 30}
-    colors = [(1.0, 0.0, 0.0, 0.3, 'solid'), (0.0,1.0,0.0,1.0,'solid'), (0.0,0.0,1.0,0.3,'solid')]
-    cairoplot.pie_plot( "pie_4_alpha.svg", data, 600, 400, colors = colors )
 
 if test_donut_plot :
     #Define a new backgrond
