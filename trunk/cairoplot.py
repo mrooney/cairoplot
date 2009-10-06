@@ -546,19 +546,19 @@ class ScatterPlot( Plot ):
         x = self.borders[HORZ]
         y = self.dimensions[VERT] - self.borders[VERT] + 5
         
-        # store rotation matrix
-        cr.rotate(self.x_label_angle)
+        # store rotation matrix from the initial state
         rotation_matrix = cr.get_matrix()
-        
-        cr.identity_matrix()
+        rotation_matrix.rotate(self.x_label_angle)
+
         cr.set_source_rgba(*self.label_color)
 
         for item in self.labels[HORZ]:
             width = cr.text_extents(item)[2]
             cr.move_to(x, y)
+            cr.save()
             cr.set_matrix(rotation_matrix)
             cr.show_text(item)
-            cr.identity_matrix()
+            cr.restore()
             x += step
     
     def render_vert_labels(self):
