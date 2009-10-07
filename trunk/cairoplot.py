@@ -510,9 +510,10 @@ class ScatterPlot( Plot ):
         if self.titles[VERT]:
             title_width,title_height = cr.text_extents(self.titles[VERT])[2:4]
             cr.move_to( self.dimensions[HORZ] - self.borders[HORZ] + title_height/2, self.dimensions[VERT]/2 - title_width/2)
+            cr.save()
             cr.rotate( math.pi/2 )
             cr.show_text( self.titles[VERT] )
-            cr.rotate( -math.pi/2 )
+            cr.restore()
         
     def render_grid(self):
         cr = self.context
