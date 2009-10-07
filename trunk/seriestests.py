@@ -85,6 +85,12 @@ if test_dot_line_plot:
     cairoplot.dot_line_plot( 'dot_line_3_series_legend_series.png', data, 400, 300, x_labels = x_labels, 
                              axis = True, grid = True, series_legend = True )
 
+    #Speed test, many x_labels
+    data = range(1000)
+    x_labels = [str(x) for x in data]
+    cairoplot.dot_line_plot( 'dot_line_4_many_x_labels.png', data, 14000, 300, x_labels = x_labels, 
+                             axis = True, grid = True, series_legend = True )
+
 if test_function_plot :
     #Default Plot
     data = lambda x : x**2
