@@ -1,7 +1,15 @@
-import cairo, math, random
+import cairo, math, sys
 
 import cairoplot
 from series import Series
+
+# non-random data for needs of visual comparison of changes
+if '--non-random' in sys.argv:
+    random = lambda : 1.0
+    print 'Plotting nonrandom data'
+else:
+    import random
+    random = random.random
 
 # Line plotting
 test_scatter_plot = 1
@@ -48,8 +56,8 @@ if test_scatter_plot:
     f = [math.exp(x) for x in t]
     g = [10*math.cos(x) for x in t]
     h = [10*math.sin(x) for x in t]
-    erx = [0.1*random.random() for x in t]
-    ery = [5*random.random() for x in t]
+    erx = [0.1*random() for x in t]
+    ery = [5*random() for x in t]
     data = Series({"exp" : [t,f], "cos" : [t,g], "sin" : [t,h]})
     series_colors = [ (1,0,0), (0,0,0), (0,0,1) ]
     cairoplot.scatter_plot ( 'cross_r_exponential_series.png', data = data, errorx = [erx,erx], errory = [ery,ery], width = 800, height = 600, border = 20, 
@@ -75,6 +83,12 @@ if test_dot_line_plot:
     data = { "john" : [10, 10, 10, 10, 30], "mary" : [0, 0, 3, 5, 15], "philip" : [13, 32, 11, 25, 2] }
     x_labels = [ "jan/2008", "feb/2008", "mar/2008", "apr/2008", "may/2008" ]
     cairoplot.dot_line_plot( 'dot_line_3_series_legend_series.png', data, 400, 300, x_labels = x_labels, 
+                             axis = True, grid = True, series_legend = True )
+
+    #Speed test, many x_labels
+    data = range(1000)
+    x_labels = [str(x) for x in data]
+    cairoplot.dot_line_plot( 'dot_line_4_many_x_labels.png', data, 14000, 300, x_labels = x_labels, 
                              axis = True, grid = True, series_legend = True )
 
 if test_function_plot :
@@ -142,7 +156,7 @@ if test_vertical_bar_plot:
     cairoplot.vertical_bar_plot ( 'vbar_8_hy_labels_series.png', data, 600, 200, border = 20, display_values = True, grid = True, x_labels = x_labels, y_labels = y_labels )
     
     #Large data set
-    data = Series([[10*random.random()] for x in range(50)])
+    data = Series([[10*random()] for x in range(50)])
     x_labels = ["large label name oh my god it's big" for x in data]
     cairoplot.vertical_bar_plot ( 'vbar_9_large_series.png', data, 1000, 800, border = 20, grid = True, rounded_corners = True, x_labels = x_labels )
     
@@ -182,7 +196,7 @@ if test_horizontal_bar_plot:
     cairoplot.horizontal_bar_plot ( 'hbar_8_hy_labels_series.png', data, 600, 200, border = 20, series_labels = series_labels, display_values = True, grid = True, x_labels = x_labels, y_labels = y_labels )
 
     #Large data set
-    data = Series([[10*random.random()] for x in range(25)])
+    data = Series([[10*random()] for x in range(25)])
     x_labels = ["large label name oh my god it's big" for x in data]
     cairoplot.horizontal_bar_plot ( 'hbar_9_large_series.png', data, 1000, 800, border = 20, grid = True, rounded_corners = True, x_labels = x_labels )
 
@@ -242,8 +256,8 @@ if test_themes :
     f = [math.exp(x) for x in t]
     g = [10*math.cos(x) for x in t]
     h = [10*math.sin(x) for x in t]
-    erx = [0.1*random.random() for x in t]
-    ery = [5*random.random() for x in t]
+    erx = [0.1*random() for x in t]
+    ery = [5*random() for x in t]
     data = Series({"exp" : [t,f], "cos" : [t,g], "sin" : [t,h]})
     series_colors = [ (1,0,0), (0,0,0) ]
     cairoplot.scatter_plot ( 'scatter_color_themes_series.png', data = data, errorx = [erx,erx], errory = [ery,ery], width = 800, height = 600, border = 20, 

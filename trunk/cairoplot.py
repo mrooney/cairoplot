@@ -510,9 +510,10 @@ class ScatterPlot( Plot ):
         if self.titles[VERT]:
             title_width,title_height = cr.text_extents(self.titles[VERT])[2:4]
             cr.move_to( self.dimensions[HORZ] - self.borders[HORZ] + title_height/2, self.dimensions[VERT]/2 - title_width/2)
+            cr.save()
             cr.rotate( math.pi/2 )
             cr.show_text( self.titles[VERT] )
-            cr.rotate( -math.pi/2 )
+            cr.restore()
         
     def render_grid(self):
         cr = self.context
@@ -544,21 +545,29 @@ class ScatterPlot( Plot ):
         cr = self.context
         step = float( self.plot_width ) / ( len( self.labels[HORZ] ) - 1 )
         x = self.borders[HORZ]
+        y = self.dimensions[VERT] - self.borders[VERT] + 5
+        
+        # store rotation matrix from the initial state
+        rotation_matrix = cr.get_matrix()
+        rotation_matrix.rotate(self.x_label_angle)
+
+        cr.set_source_rgba(*self.label_color)
+
         for item in self.labels[HORZ]:
-            cr.set_source_rgba(*self.label_color)
             width = cr.text_extents(item)[2]
-            cr.move_to(x, self.dimensions[VERT] - self.borders[VERT] + 5)
-            cr.rotate(self.x_label_angle)
+            cr.move_to(x, y)
+            cr.save()
+            cr.set_matrix(rotation_matrix)
             cr.show_text(item)
-            cr.rotate(-self.x_label_angle)
+            cr.restore()
             x += step
     
     def render_vert_labels(self):
         cr = self.context
         step = ( self.plot_height ) / ( len( self.labels[VERT] ) - 1 )
         y = self.plot_top
+        cr.set_source_rgba(*self.label_color)
         for item in self.labels[VERT]:
-            cr.set_source_rgba(*self.label_color)
             width = cr.text_extents(item)[2]
             cr.move_to(self.borders[HORZ] - width - 5,y)
             cr.show_text(item)
